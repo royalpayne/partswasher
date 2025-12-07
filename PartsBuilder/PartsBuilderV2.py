@@ -604,8 +604,9 @@ def export_output_excel():
                            'COO','SEC 232 STEEL','SEC 232 ALUMINUM','SEC 232 COPPER',
                            'SEC 232 AUTO PARTS','SEC 232 WOOD','Date Added',
                            'First Cust. Ref.','File No.','Customer ID']
-            out.to_excel(path, index=False)
+            out.to_excel(path, index=False, engine='openpyxl')
             messagebox.showinfo("Success", f"Exported to:\n{path}")
+            log("INFO", "", "", f"Output exported to Excel: {path}")
         except Exception as e:
             log("ERROR","","",f"Export failed: {e}")
 
