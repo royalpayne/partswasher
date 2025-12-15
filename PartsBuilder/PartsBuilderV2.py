@@ -1,5 +1,5 @@
 # PartsBuilderV2.py
-# Version: v1.9.60 – Enhanced MID Update Logging
+# Version: v1.9.61 – Fix MID List Column Order
 # Author: Assistant
 # Date: 2025-12-14
 # --------------------------------------------------------------
@@ -289,16 +289,24 @@ def import_mid_list():
         if not os.path.isfile(MID_XLSX):
             messagebox.showerror("Error", f"MID file not found:\n{MID_XLSX}")
             return
+        # Read columns: 0=MANUFACTURER NAME, 1=MID, 2=CUSTOMER ID (optional)
         df = pd.read_excel(MID_XLSX, header=None, usecols=[0,1])
-        df.columns = ['ven_mid','ven_name']
+        # Column 0 is vendor name, Column 1 is MID
+        df.columns = ['ven_name', 'ven_mid']
         df['ven_mid'] = df['ven_mid'].astype(str).str.strip().str.upper()
         df['ven_name'] = df['ven_name'].astype(str).str.strip()
+        # Filter out rows where MID is empty
         df = df[df['ven_mid'].str.len() > 0]
+        # Filter out rows where vendor name is empty
+        df = df[df['ven_name'].str.len() > 0]
+
+        log("INFO", "", "", f"MID list loaded: {len(df)} vendor/MID pairs")
+
         conn = sqlite3.connect(DB_FILE)
         df.to_sql('sigma_mid_list', conn, if_exists='replace', index=False)
         conn.close()
-        log("INFO", "", "", "MID list imported")
-        messagebox.showinfo("Success", "MID list imported")
+        log("INFO", "", "", f"MID list imported: {len(df)} records")
+        messagebox.showinfo("Success", f"MID list imported: {len(df)} records")
     run_in_thread(job)
 
 # ----------------------------------------------------------------------
@@ -668,7 +676,7 @@ def close_app(root):
 def build_gui():
     global root, output_tree, log_text
     root = Tk()
-    root.title("Sigma Parts Builder – v1.9.60")
+    root.title("Sigma Parts Builder – v1.9.61")
     root.geometry("1400x750")
     root.minsize(1100, 550)
 
@@ -687,7 +695,7 @@ def build_gui():
     title_label = ttk.Label(header, text="Sigma Parts Builder", style='Title.TLabel')
     title_label.pack(side="left")
 
-    version_label = ttk.Label(header, text="v1.9.60", style='Subtitle.TLabel')
+    version_label = ttk.Label(header, text="v1.9.61", style='Subtitle.TLabel')
     version_label.pack(side="left", padx=(8, 0))
 
     # Notebook with tabs
