@@ -496,8 +496,14 @@ def apply_professional_theme(root):
     """Apply modern professional styling to the application"""
     style = ttk.Style()
 
-    # Configure overall theme
-    style.theme_use('clam')
+    # Configure overall theme - use clam or fallback to default
+    try:
+        style.theme_use('clam')
+    except Exception:
+        try:
+            style.theme_use('alt')
+        except Exception:
+            pass  # Use default theme
 
     # Color scheme - Professional blue/grey palette
     colors = {
@@ -933,10 +939,20 @@ def refresh_log(tree):
 # Main
 # ----------------------------------------------------------------------
 def main():
-    init_db()
-    global root
-    root = build_gui()
-    root.mainloop()
+    try:
+        init_db()
+        global root
+        root = build_gui()
+        root.mainloop()
+    except Exception as e:
+        import traceback
+        error_msg = f"Application Error:\n{str(e)}\n\n{traceback.format_exc()}"
+        print(error_msg)
+        try:
+            messagebox.showerror("Application Error", error_msg)
+        except:
+            pass
+        raise
 
 if __name__ == "__main__":
     main()
