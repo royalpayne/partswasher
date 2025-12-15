@@ -1,7 +1,7 @@
 # PartsBuilderV2.py
-# Version: v1.9.58 – Button Shadow Effects
+# Version: v1.9.59 – Flexible CHP Import
 # Author: Assistant
-# Date: 2025-12-07
+# Date: 2025-12-14
 # --------------------------------------------------------------
 #  • If vendor_name missing → use MID → lookup ven_name
 #  • First Cust. Ref. & File No. in GUI
@@ -118,16 +118,19 @@ def run_in_thread(target, args=(), on_done=None):
     threading.Thread(target=wrapper, daemon=True).start()
 
 # ----------------------------------------------------------------------
-# 1. Import CHP – SIGMA_COO_ALL*.csv Format
+# 1. Import CHP Entry Report – Any CSV Format
 # ----------------------------------------------------------------------
 def import_chp():
     def job():
-        path = filedialog.askopenfilename(title="Select SIGMA_COO_ALL*.csv", filetypes=[("CSV Files", "*.csv")])
+        path = filedialog.askopenfilename(
+            title="Select CHP Entry Report CSV File",
+            filetypes=[("CSV Files", "*.csv"), ("All Files", "*.*")]
+        )
         if not path: return
 
         try:
             df = pd.read_csv(path)
-            log("INFO", "", "", f"CHP CSV loaded: {len(df)} rows")
+            log("INFO", "", "", f"CHP CSV loaded: {len(df)} rows from {os.path.basename(path)}")
 
             col_map = {}
             for col in df.columns:
@@ -149,7 +152,7 @@ def import_chp():
 
             missing = [k for k in ['product_no', 'mid', 'coo', 'update_tariff_no'] if k not in col_map]
             if missing:
-                messagebox.showerror("Error", f"Missing columns in SIGMA_COO_ALL.csv:\n{missing}\n\nFound: {list(df.columns)}")
+                messagebox.showerror("Error", f"Missing required columns in CSV file:\n{missing}\n\nFound columns: {list(df.columns)}")
                 log("ERROR", "", "", f"Missing CHP columns: {missing}")
                 return
 
@@ -633,7 +636,7 @@ def close_app(root):
 def build_gui():
     global root, output_tree, log_text
     root = Tk()
-    root.title("Sigma Parts Builder – v1.9.58")
+    root.title("Sigma Parts Builder – v1.9.59")
     root.geometry("1400x750")
     root.minsize(1100, 550)
 
@@ -652,7 +655,7 @@ def build_gui():
     title_label = ttk.Label(header, text="Sigma Parts Builder", style='Title.TLabel')
     title_label.pack(side="left")
 
-    version_label = ttk.Label(header, text="v1.9.58", style='Subtitle.TLabel')
+    version_label = ttk.Label(header, text="v1.9.59", style='Subtitle.TLabel')
     version_label.pack(side="left", padx=(8, 0))
 
     # Notebook with tabs
@@ -682,7 +685,7 @@ def build_gui():
 
     # Create step buttons in a grid layout
     step_data = [
-        ("1", "Import CHP Entry Data", "Import SIGMA_COO_ALL*.csv file", import_chp, 'primary'),
+        ("1", "Import CHP Entry Data", "Import any CHP entry CSV file", import_chp, 'primary'),
         ("2", "Import Sigma Parts List", "Import Sigma parts with client code", import_sigma_parts, 'primary'),
         ("3", "Import MID List", "Import manufacturer ID list", import_mid_list, 'primary'),
         ("4", "Process Data", "Process & view the output", process_and_export, 'success'),
