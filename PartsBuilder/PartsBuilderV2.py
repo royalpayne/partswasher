@@ -1,5 +1,5 @@
 # PartsBuilderV2.py
-# Version: v1.9.59 – Flexible CHP Import
+# Version: v1.9.60 – Enhanced MID Update Logging
 # Author: Assistant
 # Date: 2025-12-14
 # --------------------------------------------------------------
@@ -395,16 +395,33 @@ def process_and_export():
         # --- 5. FINAL MID LOOKUP FOR ALL PARTS ---
         conn = sqlite3.connect(DB_FILE)
         c = conn.cursor()
+
+        # First, check how many records have missing MID
+        c.execute("SELECT COUNT(*) FROM sigma_parts WHERE mid IS NULL OR mid = ''")
+        missing_mid_count = c.fetchone()[0]
+        log("INFO", "", "", f"Found {missing_mid_count} parts with missing MID")
+
+        # Update MID from vendor name lookup
         c.execute("""
             UPDATE sigma_parts
             SET mid = (
                 SELECT ven_mid FROM sigma_mid_list
                 WHERE UPPER(TRIM(sigma_mid_list.ven_name)) = UPPER(TRIM(sigma_parts.vendor_name))
             )
-            WHERE mid IS NULL OR mid = ''
+            WHERE (mid IS NULL OR mid = '')
+              AND (vendor_name IS NOT NULL AND vendor_name != '')
+              AND EXISTS (
+                  SELECT 1 FROM sigma_mid_list
+                  WHERE UPPER(TRIM(sigma_mid_list.ven_name)) = UPPER(TRIM(sigma_parts.vendor_name))
+              )
         """)
         mid_updated = c.rowcount
         conn.commit()
+
+        # Check how many still have missing MID after update
+        c.execute("SELECT COUNT(*) FROM sigma_parts WHERE mid IS NULL OR mid = ''")
+        still_missing = c.fetchone()[0]
+
         conn.close()
 
         # Reload updated data
@@ -414,6 +431,21 @@ def process_and_export():
 
         if mid_updated > 0:
             log("INFO", "", "", f"Populated {mid_updated} MIDs from vendor_name")
+        if still_missing > 0:
+            log("WARN", "", "", f"{still_missing} parts still have missing MID after lookup")
+            # Log which vendor names don't have MID matches
+            conn = sqlite3.connect(DB_FILE)
+            unmatched = pd.read_sql_query("""
+                SELECT DISTINCT vendor_name, COUNT(*) as count
+                FROM sigma_parts
+                WHERE (mid IS NULL OR mid = '')
+                  AND (vendor_name IS NOT NULL AND vendor_name != '')
+                GROUP BY vendor_name
+                LIMIT 10
+            """, conn)
+            conn.close()
+            if len(unmatched) > 0:
+                log("WARN", "", "", f"Vendor names without MID match: {', '.join(unmatched['vendor_name'].tolist())}")
 
         if skipped > 0:
             log("WARN", "", "", f"Skipped {skipped} CHP rows with empty product_no")
@@ -636,7 +668,7 @@ def close_app(root):
 def build_gui():
     global root, output_tree, log_text
     root = Tk()
-    root.title("Sigma Parts Builder – v1.9.59")
+    root.title("Sigma Parts Builder – v1.9.60")
     root.geometry("1400x750")
     root.minsize(1100, 550)
 
@@ -655,7 +687,7 @@ def build_gui():
     title_label = ttk.Label(header, text="Sigma Parts Builder", style='Title.TLabel')
     title_label.pack(side="left")
 
-    version_label = ttk.Label(header, text="v1.9.59", style='Subtitle.TLabel')
+    version_label = ttk.Label(header, text="v1.9.60", style='Subtitle.TLabel')
     version_label.pack(side="left", padx=(8, 0))
 
     # Notebook with tabs
