@@ -1,5 +1,5 @@
 # PartsBuilderV2.py
-# Version: v1.9.57 – Optimized UI Sizing
+# Version: v1.9.58 – Button Shadow Effects
 # Author: Assistant
 # Date: 2025-12-07
 # --------------------------------------------------------------
@@ -566,40 +566,60 @@ def apply_professional_theme(root):
     return colors
 
 def create_modern_button(parent, text, command, style='primary', width=None):
-    """Create a modern styled button"""
+    """Create a modern styled button with rounded corners and shadow effect"""
     colors = {
-        'primary': {'bg': '#3498DB', 'fg': 'white', 'active_bg': '#2980B9'},
-        'success': {'bg': '#27AE60', 'fg': 'white', 'active_bg': '#229954'},
-        'secondary': {'bg': '#95A5A6', 'fg': 'white', 'active_bg': '#7F8C8D'},
-        'danger': {'bg': '#E74C3C', 'fg': 'white', 'active_bg': '#C0392B'}
+        'primary': {'bg': '#3498DB', 'fg': 'white', 'active_bg': '#2980B9', 'shadow': '#2471A3'},
+        'success': {'bg': '#27AE60', 'fg': 'white', 'active_bg': '#229954', 'shadow': '#1E8449'},
+        'secondary': {'bg': '#95A5A6', 'fg': 'white', 'active_bg': '#7F8C8D', 'shadow': '#707B7C'},
+        'danger': {'bg': '#E74C3C', 'fg': 'white', 'active_bg': '#C0392B', 'shadow': '#A93226'}
     }
 
     btn_style = colors.get(style, colors['primary'])
 
-    btn = Button(parent, text=text, command=command,
+    # Create a frame to hold the button with shadow effect
+    btn_container = ttk.Frame(parent, style='TFrame')
+
+    # Create shadow frame (slightly offset)
+    shadow_frame = ttk.Frame(btn_container)
+    shadow_frame.configure(style='TFrame')
+
+    btn = Button(btn_container, text=text, command=command,
                  bg=btn_style['bg'],
                  fg=btn_style['fg'],
                  activebackground=btn_style['active_bg'],
                  activeforeground='white',
-                 relief='flat',
+                 relief='raised',
                  font=('Segoe UI', 9, 'bold'),
                  cursor='hand2',
                  padx=15,
                  pady=8,
-                 borderwidth=0,
+                 borderwidth=1,
+                 highlightthickness=0,
                  width=width if width else 0)
 
-    # Hover effects
+    # Hover effects with shadow
     def on_enter(e):
         btn['background'] = btn_style['active_bg']
+        btn['relief'] = 'raised'
 
     def on_leave(e):
         btn['background'] = btn_style['bg']
+        btn['relief'] = 'raised'
+
+    def on_press(e):
+        btn['relief'] = 'sunken'
+
+    def on_release(e):
+        btn['relief'] = 'raised'
 
     btn.bind("<Enter>", on_enter)
     btn.bind("<Leave>", on_leave)
+    btn.bind("<ButtonPress-1>", on_press)
+    btn.bind("<ButtonRelease-1>", on_release)
 
-    return btn
+    btn.pack()
+
+    return btn_container
 
 # ----------------------------------------------------------------------
 # Close App
@@ -613,7 +633,7 @@ def close_app(root):
 def build_gui():
     global root, output_tree, log_text
     root = Tk()
-    root.title("Sigma Parts Builder – v1.9.57")
+    root.title("Sigma Parts Builder – v1.9.58")
     root.geometry("1400x750")
     root.minsize(1100, 550)
 
@@ -632,7 +652,7 @@ def build_gui():
     title_label = ttk.Label(header, text="Sigma Parts Builder", style='Title.TLabel')
     title_label.pack(side="left")
 
-    version_label = ttk.Label(header, text="v1.9.57", style='Subtitle.TLabel')
+    version_label = ttk.Label(header, text="v1.9.58", style='Subtitle.TLabel')
     version_label.pack(side="left", padx=(8, 0))
 
     # Notebook with tabs
