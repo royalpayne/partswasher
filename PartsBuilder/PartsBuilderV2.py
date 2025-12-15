@@ -1,12 +1,13 @@
 # PartsBuilderV2.py
-# Version: v1.9.61 – Fix MID List Column Order
+# Version: v1.9.62 – Add Settings Menu
 # Author: Assistant
-# Date: 2025-12-14
+# Date: 2025-12-15
 # --------------------------------------------------------------
 #  • If vendor_name missing → use MID → lookup ven_name
 #  • First Cust. Ref. & File No. in GUI
 #  • Export Sigma Upload unchanged
 #  • Professional modern GUI with enhanced styling
+#  • Settings menu with MID List management
 # --------------------------------------------------------------
 
 import sqlite3
@@ -17,7 +18,7 @@ import time
 import subprocess
 import gc
 from datetime import datetime
-from tkinter import Tk, Button, Label, filedialog, messagebox, ttk, simpledialog
+from tkinter import Tk, Button, Label, filedialog, messagebox, ttk, simpledialog, Menu, Toplevel
 from tkinter import Scrollbar, Text
 
 # Optional: pyperclip
@@ -308,6 +309,122 @@ def import_mid_list():
         log("INFO", "", "", f"MID list imported: {len(df)} records")
         messagebox.showinfo("Success", f"MID list imported: {len(df)} records")
     run_in_thread(job)
+
+# ----------------------------------------------------------------------
+# Settings Dialog
+# ----------------------------------------------------------------------
+def open_settings_dialog():
+    """Open settings dialog window"""
+    dialog = Toplevel(root)
+    dialog.title("Settings")
+    dialog.geometry("600x400")
+    dialog.resizable(False, False)
+    dialog.transient(root)
+    dialog.grab_set()
+
+    # Apply professional theme colors
+    colors = {
+        'primary': '#2C3E50',
+        'secondary': '#34495E',
+        'accent': '#3498DB',
+        'success': '#27AE60',
+        'background': '#ECF0F1',
+        'surface': '#FFFFFF',
+        'text': '#2C3E50',
+        'text_light': '#7F8C8D'
+    }
+    dialog.configure(bg=colors['background'])
+
+    # Main container
+    main_frame = ttk.Frame(dialog, style='TFrame')
+    main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+    # Title
+    title_label = ttk.Label(main_frame, text="Settings", style='Title.TLabel')
+    title_label.pack(anchor="w", pady=(0, 20))
+
+    # MID List Section
+    mid_section = ttk.LabelFrame(main_frame, text="  MID List Management  ", style='TLabelframe')
+    mid_section.pack(fill="x", pady=(0, 15))
+
+    mid_inner = ttk.Frame(mid_section, style='TFrame')
+    mid_inner.pack(fill="x", padx=15, pady=15)
+
+    # File path display
+    path_frame = ttk.Frame(mid_inner, style='TFrame')
+    path_frame.pack(fill="x", pady=(0, 10))
+
+    path_label = ttk.Label(path_frame, text="File Path:", style='TLabel')
+    path_label.pack(anchor="w")
+
+    path_value = ttk.Label(path_frame, text=MID_XLSX,
+                           font=('Consolas', 8),
+                           foreground=colors['text_light'],
+                           background=colors['background'])
+    path_value.pack(anchor="w", padx=(0, 0))
+
+    # Status display
+    status_frame = ttk.Frame(mid_inner, style='TFrame')
+    status_frame.pack(fill="x", pady=(0, 15))
+
+    status_label_text = ttk.Label(status_frame, text="Status:", style='TLabel')
+    status_label_text.pack(anchor="w")
+
+    # Get current MID list count
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        count = pd.read_sql_query("SELECT COUNT(*) as count FROM sigma_mid_list", conn)['count'][0]
+        conn.close()
+        status_text = f"✓ {count} MID records loaded"
+        status_color = colors['success']
+    except:
+        status_text = "⚠ No MID list loaded"
+        status_color = colors['text_light']
+
+    status_value = ttk.Label(status_frame, text=status_text,
+                            font=('Segoe UI', 9, 'bold'),
+                            foreground=status_color,
+                            background=colors['background'])
+    status_value.pack(anchor="w")
+
+    # Import button
+    def refresh_status():
+        """Refresh the status display after import"""
+        try:
+            conn = sqlite3.connect(DB_FILE)
+            count = pd.read_sql_query("SELECT COUNT(*) as count FROM sigma_mid_list", conn)['count'][0]
+            conn.close()
+            status_value.config(text=f"✓ {count} MID records loaded", foreground=colors['success'])
+        except:
+            status_value.config(text="⚠ No MID list loaded", foreground=colors['text_light'])
+
+    def import_with_refresh():
+        """Import MID list and refresh status"""
+        import_mid_list()
+        dialog.after(1000, refresh_status)  # Refresh after 1 second
+
+    btn_frame = ttk.Frame(mid_inner, style='TFrame')
+    btn_frame.pack(fill="x")
+
+    import_btn = create_modern_button(btn_frame, "Import MID List", import_with_refresh, style='primary', width=20)
+    import_btn.pack(side="left")
+
+    # Separator
+    separator = ttk.Separator(main_frame, orient='horizontal')
+    separator.pack(fill="x", pady=15)
+
+    # Bottom buttons
+    bottom_frame = ttk.Frame(main_frame, style='TFrame')
+    bottom_frame.pack(fill="x")
+
+    close_btn = create_modern_button(bottom_frame, "Close", dialog.destroy, style='secondary', width=15)
+    close_btn.pack(side="right")
+
+    # Center dialog on parent window
+    dialog.update_idletasks()
+    x = root.winfo_x() + (root.winfo_width() // 2) - (dialog.winfo_width() // 2)
+    y = root.winfo_y() + (root.winfo_height() // 2) - (dialog.winfo_height() // 2)
+    dialog.geometry(f"+{x}+{y}")
 
 # ----------------------------------------------------------------------
 # 4. Process & Export – VENDOR NAME FROM MID LIST
@@ -676,13 +793,27 @@ def close_app(root):
 def build_gui():
     global root, output_tree, log_text
     root = Tk()
-    root.title("Sigma Parts Builder – v1.9.61")
+    root.title("Sigma Parts Builder – v1.9.62")
     root.geometry("1400x750")
     root.minsize(1100, 550)
 
     # Apply professional theme
     colors = apply_professional_theme(root)
     root.configure(bg=colors['background'])
+
+    # Create menu bar
+    menubar = Menu(root)
+    root.config(menu=menubar)
+
+    # File menu
+    file_menu = Menu(menubar, tearoff=0)
+    menubar.add_cascade(label="File", menu=file_menu)
+    file_menu.add_command(label="Exit", command=lambda: close_app(root))
+
+    # Settings menu
+    settings_menu = Menu(menubar, tearoff=0)
+    menubar.add_cascade(label="Settings", menu=settings_menu)
+    settings_menu.add_command(label="Import MID List...", command=open_settings_dialog)
 
     # Main container with padding
     main_container = ttk.Frame(root, style='TFrame')
@@ -695,7 +826,7 @@ def build_gui():
     title_label = ttk.Label(header, text="Sigma Parts Builder", style='Title.TLabel')
     title_label.pack(side="left")
 
-    version_label = ttk.Label(header, text="v1.9.61", style='Subtitle.TLabel')
+    version_label = ttk.Label(header, text="v1.9.62", style='Subtitle.TLabel')
     version_label.pack(side="left", padx=(8, 0))
 
     # Notebook with tabs
@@ -727,9 +858,8 @@ def build_gui():
     step_data = [
         ("1", "Import CHP Entry Data", "Import any CHP entry CSV file", import_chp, 'primary'),
         ("2", "Import Sigma Parts List", "Import Sigma parts with client code", import_sigma_parts, 'primary'),
-        ("3", "Import MID List", "Import manufacturer ID list", import_mid_list, 'primary'),
-        ("4", "Process Data", "Process & view the output", process_and_export, 'success'),
-        ("5", "Export Upload File", "Export Sigma upload format", export_sigma_upload, 'secondary'),
+        ("3", "Process Data", "Process & view the output", process_and_export, 'success'),
+        ("4", "Export Upload File", "Export Sigma upload format", export_sigma_upload, 'secondary'),
     ]
 
     for i, (num, title, desc, cmd, btn_style) in enumerate(step_data):
