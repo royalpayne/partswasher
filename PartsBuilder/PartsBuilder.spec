@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-# PyInstaller spec file for Sigma Parts Builder v1.9.58
+# PyInstaller spec file for Sigma Parts Builder v1.9.59
 
 block_cipher = None
 
