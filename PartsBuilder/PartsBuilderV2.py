@@ -1,11 +1,12 @@
 # PartsBuilderV2.py
-# Version: v1.9.55 – Customer ID Fix
+# Version: v1.9.56 – Professional GUI Redesign
 # Author: Assistant
 # Date: 2025-12-07
 # --------------------------------------------------------------
 #  • If vendor_name missing → use MID → lookup ven_name
 #  • First Cust. Ref. & File No. in GUI
 #  • Export Sigma Upload unchanged
+#  • Professional modern GUI with enhanced styling
 # --------------------------------------------------------------
 
 import sqlite3
@@ -489,6 +490,112 @@ def export_sigma_upload():
         messagebox.showerror("Error", f"Export failed:\n{e}")
 
 # ----------------------------------------------------------------------
+# Apply Professional Theme
+# ----------------------------------------------------------------------
+def apply_professional_theme(root):
+    """Apply modern professional styling to the application"""
+    style = ttk.Style()
+
+    # Configure overall theme
+    style.theme_use('clam')
+
+    # Color scheme - Professional blue/grey palette
+    colors = {
+        'primary': '#2C3E50',      # Dark blue-grey
+        'secondary': '#34495E',    # Medium blue-grey
+        'accent': '#3498DB',       # Bright blue
+        'success': '#27AE60',      # Green
+        'background': '#ECF0F1',   # Light grey
+        'surface': '#FFFFFF',      # White
+        'text': '#2C3E50',         # Dark text
+        'text_light': '#7F8C8D'    # Light text
+    }
+
+    # Configure Notebook (tabs)
+    style.configure('TNotebook', background=colors['background'], borderwidth=0)
+    style.configure('TNotebook.Tab',
+                    background=colors['secondary'],
+                    foreground='white',
+                    padding=[20, 10],
+                    font=('Segoe UI', 10, 'bold'))
+    style.map('TNotebook.Tab',
+              background=[('selected', colors['primary'])],
+              foreground=[('selected', 'white')],
+              expand=[('selected', [1, 1, 1, 0])])
+
+    # Configure Frames
+    style.configure('TFrame', background=colors['background'])
+    style.configure('Card.TFrame', background=colors['surface'], relief='flat')
+
+    # Configure Labels
+    style.configure('TLabel', background=colors['background'], foreground=colors['text'], font=('Segoe UI', 10))
+    style.configure('Title.TLabel', font=('Segoe UI', 16, 'bold'), foreground=colors['primary'], background=colors['background'])
+    style.configure('Subtitle.TLabel', font=('Segoe UI', 11, 'bold'), foreground=colors['secondary'], background=colors['background'])
+
+    # Configure LabelFrames
+    style.configure('TLabelframe', background=colors['background'], borderwidth=2, relief='groove')
+    style.configure('TLabelframe.Label', font=('Segoe UI', 10, 'bold'), foreground=colors['primary'], background=colors['background'])
+
+    # Configure Treeview
+    style.configure('Treeview',
+                    background=colors['surface'],
+                    foreground=colors['text'],
+                    fieldbackground=colors['surface'],
+                    font=('Segoe UI', 9),
+                    rowheight=25)
+    style.configure('Treeview.Heading',
+                    background=colors['primary'],
+                    foreground='white',
+                    font=('Segoe UI', 10, 'bold'),
+                    relief='flat')
+    style.map('Treeview.Heading',
+              background=[('active', colors['accent'])])
+    style.map('Treeview',
+              background=[('selected', colors['accent'])],
+              foreground=[('selected', 'white')])
+
+    # Configure Buttons (we'll use custom styling)
+    root.option_add('*Button.Font', ('Segoe UI', 10))
+
+    return colors
+
+def create_modern_button(parent, text, command, style='primary', width=None):
+    """Create a modern styled button"""
+    colors = {
+        'primary': {'bg': '#3498DB', 'fg': 'white', 'active_bg': '#2980B9'},
+        'success': {'bg': '#27AE60', 'fg': 'white', 'active_bg': '#229954'},
+        'secondary': {'bg': '#95A5A6', 'fg': 'white', 'active_bg': '#7F8C8D'},
+        'danger': {'bg': '#E74C3C', 'fg': 'white', 'active_bg': '#C0392B'}
+    }
+
+    btn_style = colors.get(style, colors['primary'])
+
+    btn = Button(parent, text=text, command=command,
+                 bg=btn_style['bg'],
+                 fg=btn_style['fg'],
+                 activebackground=btn_style['active_bg'],
+                 activeforeground='white',
+                 relief='flat',
+                 font=('Segoe UI', 10, 'bold'),
+                 cursor='hand2',
+                 padx=20,
+                 pady=10,
+                 borderwidth=0,
+                 width=width if width else 0)
+
+    # Hover effects
+    def on_enter(e):
+        btn['background'] = btn_style['active_bg']
+
+    def on_leave(e):
+        btn['background'] = btn_style['bg']
+
+    btn.bind("<Enter>", on_enter)
+    btn.bind("<Leave>", on_leave)
+
+    return btn
+
+# ----------------------------------------------------------------------
 # Close App
 # ----------------------------------------------------------------------
 def close_app(root):
@@ -500,67 +607,244 @@ def close_app(root):
 def build_gui():
     global root, output_tree, log_text
     root = Tk()
-    root.title("Sigma Parts Builder – v1.9.55")
-    root.geometry("1400x750")
+    root.title("Sigma Parts Builder – v1.9.56")
+    root.geometry("1450x800")
+    root.minsize(1200, 600)
 
-    nb = ttk.Notebook(root)
-    nb.pack(fill="both", expand=True, padx=12, pady=12)
+    # Apply professional theme
+    colors = apply_professional_theme(root)
+    root.configure(bg=colors['background'])
+
+    # Main container with padding
+    main_container = ttk.Frame(root, style='TFrame')
+    main_container.pack(fill="both", expand=True, padx=15, pady=15)
+
+    # Header section
+    header = ttk.Frame(main_container, style='TFrame')
+    header.pack(fill="x", pady=(0, 15))
+
+    title_label = ttk.Label(header, text="Sigma Parts Builder", style='Title.TLabel')
+    title_label.pack(side="left")
+
+    version_label = ttk.Label(header, text="v1.9.56", style='Subtitle.TLabel')
+    version_label.pack(side="left", padx=(10, 0))
+
+    # Notebook with tabs
+    nb = ttk.Notebook(main_container)
+    nb.pack(fill="both", expand=True)
 
     # ---------- Control ----------
-    ctrl = ttk.Frame(nb)
-    nb.add(ctrl, text="Control")
-    Label(ctrl, text="Import to Process to Export", font=("Arial",12,"bold")).pack(pady=8)
+    ctrl = ttk.Frame(nb, style='TFrame')
+    nb.add(ctrl, text="  Control  ")
 
-    log_frame = ttk.LabelFrame(ctrl, text="Progress Log")
-    log_frame.pack(fill="both", expand=True, padx=10, pady=5)
-    log_text = Text(log_frame, height=12, wrap="word", state="normal")
+    # Control panel container with padding
+    ctrl_container = ttk.Frame(ctrl, style='TFrame')
+    ctrl_container.pack(fill="both", expand=True, padx=20, pady=20)
+
+    # Instruction section
+    instruction_frame = ttk.Frame(ctrl_container, style='TFrame')
+    instruction_frame.pack(fill="x", pady=(0, 20))
+
+    instruction_label = ttk.Label(instruction_frame,
+                                  text="Follow the steps below to process your parts data",
+                                  style='Subtitle.TLabel')
+    instruction_label.pack(anchor="w")
+
+    # Workflow steps with modern cards
+    steps_frame = ttk.Frame(ctrl_container, style='TFrame')
+    steps_frame.pack(fill="x", pady=(0, 15))
+
+    # Create step buttons in a grid layout
+    step_data = [
+        ("1", "Import CHP Entry Data", "Import SIGMA_COO_ALL*.csv file", import_chp, 'primary'),
+        ("2", "Import Sigma Parts List", "Import Sigma parts with client code", import_sigma_parts, 'primary'),
+        ("3", "Import MID List", "Import manufacturer ID list", import_mid_list, 'primary'),
+        ("4", "Process Data", "Process & view the output", process_and_export, 'success'),
+        ("5", "Export Upload File", "Export Sigma upload format", export_sigma_upload, 'secondary'),
+    ]
+
+    for i, (num, title, desc, cmd, btn_style) in enumerate(step_data):
+        step_card = ttk.Frame(steps_frame, style='TFrame')
+        step_card.pack(fill="x", pady=5)
+
+        # Step number and button
+        btn_frame = ttk.Frame(step_card, style='TFrame')
+        btn_frame.pack(fill="x")
+
+        step_num_label = ttk.Label(btn_frame, text=f"Step {num}",
+                                    font=('Segoe UI', 9, 'bold'),
+                                    foreground='#7F8C8D',
+                                    background=colors['background'])
+        step_num_label.pack(side="left", padx=(0, 10))
+
+        btn = create_modern_button(btn_frame, title, cmd, style=btn_style, width=35)
+        btn.pack(side="left")
+
+        desc_label = ttk.Label(btn_frame, text=f"  ({desc})",
+                               font=('Segoe UI', 9, 'italic'),
+                               foreground='#95A5A6',
+                               background=colors['background'])
+        desc_label.pack(side="left", padx=(10, 0))
+
+    # Separator
+    separator = ttk.Separator(ctrl_container, orient='horizontal')
+    separator.pack(fill="x", pady=15)
+
+    # Progress Log section
+    log_frame = ttk.LabelFrame(ctrl_container, text="  Progress Log  ", style='TLabelframe')
+    log_frame.pack(fill="both", expand=True, pady=(0, 15))
+
+    log_inner = ttk.Frame(log_frame, style='TFrame')
+    log_inner.pack(fill="both", expand=True, padx=10, pady=10)
+
+    log_text = Text(log_inner, height=15, wrap="word", state="normal",
+                    bg='#FFFFFF', fg='#2C3E50',
+                    font=('Consolas', 9),
+                    relief='flat',
+                    borderwidth=0,
+                    insertbackground='#3498DB')
     log_text.pack(side="left", fill="both", expand=True)
-    sb_log = Scrollbar(log_frame, command=log_text.yview)
+
+    sb_log = Scrollbar(log_inner, command=log_text.yview)
     sb_log.pack(side="right", fill="y")
     log_text.config(yscrollcommand=sb_log.set)
 
-    btns = [
-        ("1. Import SIGMA_COO_ALL*.csv", import_chp),
-        ("2. Import Sigma Parts List", import_sigma_parts),
-        ("3. Import MID List", import_mid_list),
-        ("4. Process & View Output", process_and_export),
-        ("5. Export Sigma Upload (A,I,J,L,Q,AA,AB)", export_sigma_upload),
-        ("Close", lambda: close_app(root))
-    ]
-    for txt, cmd in btns:
-        Button(ctrl, text=txt, command=cmd, width=50).pack(pady=3)
+    # Bottom action buttons
+    bottom_frame = ttk.Frame(ctrl_container, style='TFrame')
+    bottom_frame.pack(fill="x")
+
+    close_btn = create_modern_button(bottom_frame, "Close Application",
+                                      lambda: close_app(root), style='danger', width=20)
+    close_btn.pack(side="right")
 
     # ---------- Output ----------
-    outf = ttk.Frame(nb)
-    nb.add(outf, text="Output")
-    Label(outf, text="Final Report", font=("Arial",11,"bold")).pack(pady=8)
+    outf = ttk.Frame(nb, style='TFrame')
+    nb.add(outf, text="  Output  ")
+
+    # Output container with padding
+    output_container = ttk.Frame(outf, style='TFrame')
+    output_container.pack(fill="both", expand=True, padx=20, pady=20)
+
+    # Header section with title and action buttons
+    output_header = ttk.Frame(output_container, style='TFrame')
+    output_header.pack(fill="x", pady=(0, 15))
+
+    output_title = ttk.Label(output_header, text="Final Report", style='Title.TLabel')
+    output_title.pack(side="left")
+
+    # Action buttons on the right
+    btn_container = ttk.Frame(output_header, style='TFrame')
+    btn_container.pack(side="right")
+
+    export_btn = create_modern_button(btn_container, "📊 Export to Excel",
+                                       export_output_excel, style='success', width=18)
+    export_btn.pack(side="left", padx=5)
+
+    copy_btn = create_modern_button(btn_container, "📋 Copy to Clipboard",
+                                     copy_output_to_clipboard, style='secondary', width=18)
+    copy_btn.pack(side="left", padx=5)
+
+    # Data grid section with frame
+    grid_frame = ttk.Frame(output_container, style='TFrame')
+    grid_frame.pack(fill="both", expand=True)
+
+    # Treeview with columns
     cols = ("Product No","MID","Vendor","HTS","COO","232 Steel","232 Alum","232 Copper","232 Auto","232 Wood","Date","First Cust. Ref.","File No.","Customer ID")
-    output_tree = ttk.Treeview(outf, columns=cols, show="headings")
+    output_tree = ttk.Treeview(grid_frame, columns=cols, show="headings", style='Treeview')
     widths = [120,100,180,100,60,70,70,70,70,70,130,120,100,100]
     for c, w in zip(cols, widths):
         output_tree.heading(c, text=c)
         output_tree.column(c, width=w, anchor="w")
-    output_tree.pack(side="left", fill="both", expand=True)
-    Scrollbar(outf, command=output_tree.yview).pack(side="right", fill="y")
 
-    btn_frame = ttk.Frame(outf)
-    btn_frame.pack(pady=8)
-    Button(btn_frame, text="Export to Excel", command=export_output_excel).pack(side="left", padx=5)
-    Button(btn_frame, text="Copy to Clipboard", command=copy_output_to_clipboard).pack(side="left", padx=5)
+    # Add scrollbars
+    vsb = Scrollbar(grid_frame, command=output_tree.yview, orient='vertical')
+    hsb = Scrollbar(grid_frame, command=output_tree.xview, orient='horizontal')
+    output_tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+
+    # Grid layout for treeview and scrollbars
+    output_tree.grid(row=0, column=0, sticky='nsew')
+    vsb.grid(row=0, column=1, sticky='ns')
+    hsb.grid(row=1, column=0, sticky='ew')
+
+    grid_frame.grid_rowconfigure(0, weight=1)
+    grid_frame.grid_columnconfigure(0, weight=1)
+
+    # Status label for row count
+    status_frame = ttk.Frame(output_container, style='TFrame')
+    status_frame.pack(fill="x", pady=(10, 0))
+
+    output_status_label = ttk.Label(status_frame,
+                                     text="No data loaded. Run 'Process Data' to view results.",
+                                     font=('Segoe UI', 9, 'italic'),
+                                     foreground='#7F8C8D',
+                                     background=colors['background'])
+    output_status_label.pack(side="left")
 
     # ---------- Log ----------
-    logf = ttk.Frame(nb)
-    nb.add(logf, text="Error Log")
-    tree = ttk.Treeview(logf, columns=("Type","Product No","MID","Details"), show="headings")
-    for c,w in zip(tree["columns"],[80,130,100,450]):
+    logf = ttk.Frame(nb, style='TFrame')
+    nb.add(logf, text="  Error Log  ")
+
+    # Log container with padding
+    log_container = ttk.Frame(logf, style='TFrame')
+    log_container.pack(fill="both", expand=True, padx=20, pady=20)
+
+    # Header
+    log_header = ttk.Frame(log_container, style='TFrame')
+    log_header.pack(fill="x", pady=(0, 15))
+
+    log_title = ttk.Label(log_header, text="System Log", style='Title.TLabel')
+    log_title.pack(side="left")
+
+    log_subtitle = ttk.Label(log_header,
+                             text="Track errors and system events",
+                             font=('Segoe UI', 10),
+                             foreground='#7F8C8D',
+                             background=colors['background'])
+    log_subtitle.pack(side="left", padx=(15, 0))
+
+    # Log grid section
+    log_grid_frame = ttk.Frame(log_container, style='TFrame')
+    log_grid_frame.pack(fill="both", expand=True)
+
+    tree = ttk.Treeview(log_grid_frame, columns=("Type","Product No","MID","Details"),
+                        show="headings", style='Treeview')
+    for c, w in zip(tree["columns"], [100, 150, 120, 550]):
         tree.heading(c, text=c)
         tree.column(c, width=w, anchor="w")
-    tree.pack(side="left", fill="both", expand=True)
-    Scrollbar(logf, command=tree.yview).pack(side="right", fill="y")
+
+    # Add scrollbars
+    log_vsb = Scrollbar(log_grid_frame, command=tree.yview, orient='vertical')
+    log_hsb = Scrollbar(log_grid_frame, command=tree.xview, orient='horizontal')
+    tree.configure(yscrollcommand=log_vsb.set, xscrollcommand=log_hsb.set)
+
+    # Grid layout
+    tree.grid(row=0, column=0, sticky='nsew')
+    log_vsb.grid(row=0, column=1, sticky='ns')
+    log_hsb.grid(row=1, column=0, sticky='ew')
+
+    log_grid_frame.grid_rowconfigure(0, weight=1)
+    log_grid_frame.grid_columnconfigure(0, weight=1)
+
     nb.bind("<<NotebookTabChanged>>", lambda e: refresh_log(tree) if nb.index(nb.select())==2 else None)
 
-    status = Label(root, text="Ready", anchor="w", relief="sunken", bd=1)
-    status.pack(side="bottom", fill="x")
+    # Modern status bar at the bottom of main window
+    status_bar = ttk.Frame(root, style='TFrame', relief='flat')
+    status_bar.pack(side="bottom", fill="x")
+
+    # Status bar background
+    status_inner = ttk.Frame(status_bar, style='TFrame')
+    status_inner.pack(fill="x", padx=15, pady=8)
+
+    status = Label(status_inner, text="Ready",
+                   anchor="w",
+                   bg=colors['primary'],
+                   fg='white',
+                   font=('Segoe UI', 9),
+                   padx=10,
+                   pady=5,
+                   relief='flat')
+    status.pack(side="left", fill="x", expand=True)
+
     root.set_status = lambda txt: status.config(text=txt)
 
     return root
