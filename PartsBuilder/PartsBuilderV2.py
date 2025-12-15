@@ -1,5 +1,5 @@
 # PartsBuilderV2.py
-# Version: v1.9.56 – Professional GUI Redesign
+# Version: v1.9.57 – Optimized UI Sizing
 # Author: Assistant
 # Date: 2025-12-07
 # --------------------------------------------------------------
@@ -516,8 +516,8 @@ def apply_professional_theme(root):
     style.configure('TNotebook.Tab',
                     background=colors['secondary'],
                     foreground='white',
-                    padding=[20, 10],
-                    font=('Segoe UI', 10, 'bold'))
+                    padding=[15, 8],
+                    font=('Segoe UI', 9, 'bold'))
     style.map('TNotebook.Tab',
               background=[('selected', colors['primary'])],
               foreground=[('selected', 'white')],
@@ -528,9 +528,9 @@ def apply_professional_theme(root):
     style.configure('Card.TFrame', background=colors['surface'], relief='flat')
 
     # Configure Labels
-    style.configure('TLabel', background=colors['background'], foreground=colors['text'], font=('Segoe UI', 10))
-    style.configure('Title.TLabel', font=('Segoe UI', 16, 'bold'), foreground=colors['primary'], background=colors['background'])
-    style.configure('Subtitle.TLabel', font=('Segoe UI', 11, 'bold'), foreground=colors['secondary'], background=colors['background'])
+    style.configure('TLabel', background=colors['background'], foreground=colors['text'], font=('Segoe UI', 9))
+    style.configure('Title.TLabel', font=('Segoe UI', 13, 'bold'), foreground=colors['primary'], background=colors['background'])
+    style.configure('Subtitle.TLabel', font=('Segoe UI', 10, 'bold'), foreground=colors['secondary'], background=colors['background'])
 
     # Configure LabelFrames
     style.configure('TLabelframe', background=colors['background'], borderwidth=2, relief='groove')
@@ -542,11 +542,11 @@ def apply_professional_theme(root):
                     foreground=colors['text'],
                     fieldbackground=colors['surface'],
                     font=('Segoe UI', 9),
-                    rowheight=25)
+                    rowheight=22)
     style.configure('Treeview.Heading',
                     background=colors['primary'],
                     foreground='white',
-                    font=('Segoe UI', 10, 'bold'),
+                    font=('Segoe UI', 9, 'bold'),
                     relief='flat')
     style.map('Treeview.Heading',
               background=[('active', colors['accent'])])
@@ -576,10 +576,10 @@ def create_modern_button(parent, text, command, style='primary', width=None):
                  activebackground=btn_style['active_bg'],
                  activeforeground='white',
                  relief='flat',
-                 font=('Segoe UI', 10, 'bold'),
+                 font=('Segoe UI', 9, 'bold'),
                  cursor='hand2',
-                 padx=20,
-                 pady=10,
+                 padx=15,
+                 pady=8,
                  borderwidth=0,
                  width=width if width else 0)
 
@@ -607,9 +607,9 @@ def close_app(root):
 def build_gui():
     global root, output_tree, log_text
     root = Tk()
-    root.title("Sigma Parts Builder – v1.9.56")
-    root.geometry("1450x800")
-    root.minsize(1200, 600)
+    root.title("Sigma Parts Builder – v1.9.57")
+    root.geometry("1400x750")
+    root.minsize(1100, 550)
 
     # Apply professional theme
     colors = apply_professional_theme(root)
@@ -617,17 +617,17 @@ def build_gui():
 
     # Main container with padding
     main_container = ttk.Frame(root, style='TFrame')
-    main_container.pack(fill="both", expand=True, padx=15, pady=15)
+    main_container.pack(fill="both", expand=True, padx=10, pady=10)
 
     # Header section
     header = ttk.Frame(main_container, style='TFrame')
-    header.pack(fill="x", pady=(0, 15))
+    header.pack(fill="x", pady=(0, 10))
 
     title_label = ttk.Label(header, text="Sigma Parts Builder", style='Title.TLabel')
     title_label.pack(side="left")
 
-    version_label = ttk.Label(header, text="v1.9.56", style='Subtitle.TLabel')
-    version_label.pack(side="left", padx=(10, 0))
+    version_label = ttk.Label(header, text="v1.9.57", style='Subtitle.TLabel')
+    version_label.pack(side="left", padx=(8, 0))
 
     # Notebook with tabs
     nb = ttk.Notebook(main_container)
@@ -639,11 +639,11 @@ def build_gui():
 
     # Control panel container with padding
     ctrl_container = ttk.Frame(ctrl, style='TFrame')
-    ctrl_container.pack(fill="both", expand=True, padx=20, pady=20)
+    ctrl_container.pack(fill="both", expand=True, padx=15, pady=15)
 
     # Instruction section
     instruction_frame = ttk.Frame(ctrl_container, style='TFrame')
-    instruction_frame.pack(fill="x", pady=(0, 20))
+    instruction_frame.pack(fill="x", pady=(0, 12))
 
     instruction_label = ttk.Label(instruction_frame,
                                   text="Follow the steps below to process your parts data",
@@ -652,7 +652,7 @@ def build_gui():
 
     # Workflow steps with modern cards
     steps_frame = ttk.Frame(ctrl_container, style='TFrame')
-    steps_frame.pack(fill="x", pady=(0, 15))
+    steps_frame.pack(fill="x", pady=(0, 10))
 
     # Create step buttons in a grid layout
     step_data = [
@@ -665,41 +665,41 @@ def build_gui():
 
     for i, (num, title, desc, cmd, btn_style) in enumerate(step_data):
         step_card = ttk.Frame(steps_frame, style='TFrame')
-        step_card.pack(fill="x", pady=5)
+        step_card.pack(fill="x", pady=3)
 
         # Step number and button
         btn_frame = ttk.Frame(step_card, style='TFrame')
         btn_frame.pack(fill="x")
 
         step_num_label = ttk.Label(btn_frame, text=f"Step {num}",
-                                    font=('Segoe UI', 9, 'bold'),
+                                    font=('Segoe UI', 8, 'bold'),
                                     foreground='#7F8C8D',
                                     background=colors['background'])
-        step_num_label.pack(side="left", padx=(0, 10))
+        step_num_label.pack(side="left", padx=(0, 8))
 
-        btn = create_modern_button(btn_frame, title, cmd, style=btn_style, width=35)
+        btn = create_modern_button(btn_frame, title, cmd, style=btn_style, width=30)
         btn.pack(side="left")
 
         desc_label = ttk.Label(btn_frame, text=f"  ({desc})",
-                               font=('Segoe UI', 9, 'italic'),
+                               font=('Segoe UI', 8, 'italic'),
                                foreground='#95A5A6',
                                background=colors['background'])
-        desc_label.pack(side="left", padx=(10, 0))
+        desc_label.pack(side="left", padx=(8, 0))
 
     # Separator
     separator = ttk.Separator(ctrl_container, orient='horizontal')
-    separator.pack(fill="x", pady=15)
+    separator.pack(fill="x", pady=10)
 
     # Progress Log section
     log_frame = ttk.LabelFrame(ctrl_container, text="  Progress Log  ", style='TLabelframe')
-    log_frame.pack(fill="both", expand=True, pady=(0, 15))
+    log_frame.pack(fill="both", expand=True, pady=(0, 10))
 
     log_inner = ttk.Frame(log_frame, style='TFrame')
-    log_inner.pack(fill="both", expand=True, padx=10, pady=10)
+    log_inner.pack(fill="both", expand=True, padx=8, pady=8)
 
-    log_text = Text(log_inner, height=15, wrap="word", state="normal",
+    log_text = Text(log_inner, height=12, wrap="word", state="normal",
                     bg='#FFFFFF', fg='#2C3E50',
-                    font=('Consolas', 9),
+                    font=('Consolas', 8),
                     relief='flat',
                     borderwidth=0,
                     insertbackground='#3498DB')
@@ -714,7 +714,7 @@ def build_gui():
     bottom_frame.pack(fill="x")
 
     close_btn = create_modern_button(bottom_frame, "Close Application",
-                                      lambda: close_app(root), style='danger', width=20)
+                                      lambda: close_app(root), style='danger', width=18)
     close_btn.pack(side="right")
 
     # ---------- Output ----------
@@ -723,11 +723,11 @@ def build_gui():
 
     # Output container with padding
     output_container = ttk.Frame(outf, style='TFrame')
-    output_container.pack(fill="both", expand=True, padx=20, pady=20)
+    output_container.pack(fill="both", expand=True, padx=15, pady=15)
 
     # Header section with title and action buttons
     output_header = ttk.Frame(output_container, style='TFrame')
-    output_header.pack(fill="x", pady=(0, 15))
+    output_header.pack(fill="x", pady=(0, 10))
 
     output_title = ttk.Label(output_header, text="Final Report", style='Title.TLabel')
     output_title.pack(side="left")
@@ -737,12 +737,12 @@ def build_gui():
     btn_container.pack(side="right")
 
     export_btn = create_modern_button(btn_container, "📊 Export to Excel",
-                                       export_output_excel, style='success', width=18)
-    export_btn.pack(side="left", padx=5)
+                                       export_output_excel, style='success', width=16)
+    export_btn.pack(side="left", padx=3)
 
     copy_btn = create_modern_button(btn_container, "📋 Copy to Clipboard",
-                                     copy_output_to_clipboard, style='secondary', width=18)
-    copy_btn.pack(side="left", padx=5)
+                                     copy_output_to_clipboard, style='secondary', width=16)
+    copy_btn.pack(side="left", padx=3)
 
     # Data grid section with frame
     grid_frame = ttk.Frame(output_container, style='TFrame')
@@ -786,21 +786,21 @@ def build_gui():
 
     # Log container with padding
     log_container = ttk.Frame(logf, style='TFrame')
-    log_container.pack(fill="both", expand=True, padx=20, pady=20)
+    log_container.pack(fill="both", expand=True, padx=15, pady=15)
 
     # Header
     log_header = ttk.Frame(log_container, style='TFrame')
-    log_header.pack(fill="x", pady=(0, 15))
+    log_header.pack(fill="x", pady=(0, 10))
 
     log_title = ttk.Label(log_header, text="System Log", style='Title.TLabel')
     log_title.pack(side="left")
 
     log_subtitle = ttk.Label(log_header,
                              text="Track errors and system events",
-                             font=('Segoe UI', 10),
+                             font=('Segoe UI', 9),
                              foreground='#7F8C8D',
                              background=colors['background'])
-    log_subtitle.pack(side="left", padx=(15, 0))
+    log_subtitle.pack(side="left", padx=(10, 0))
 
     # Log grid section
     log_grid_frame = ttk.Frame(log_container, style='TFrame')
@@ -833,15 +833,15 @@ def build_gui():
 
     # Status bar background
     status_inner = ttk.Frame(status_bar, style='TFrame')
-    status_inner.pack(fill="x", padx=15, pady=8)
+    status_inner.pack(fill="x", padx=10, pady=6)
 
     status = Label(status_inner, text="Ready",
                    anchor="w",
                    bg=colors['primary'],
                    fg='white',
-                   font=('Segoe UI', 9),
-                   padx=10,
-                   pady=5,
+                   font=('Segoe UI', 8),
+                   padx=8,
+                   pady=4,
                    relief='flat')
     status.pack(side="left", fill="x", expand=True)
 
