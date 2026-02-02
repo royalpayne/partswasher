@@ -1,0 +1,436 @@
+{
+  "project": {
+    "name": "Parts Washer Controller",
+    "version": "1.1",
+    "description": "ESP32-S3 + 3x TMC2209 Stepper Controller",
+    "author": "Parts Washer Project",
+    "date": "2026-02-02"
+  },
+  "search_tips": {
+    "note": "LCSC part numbers change frequently. Search by part name if numbers don't work.",
+    "workflow": "In EasyEDA: Library panel -> Search by name -> Filter by 'LCSC Assembly' for stocked parts"
+  },
+  "components": {
+    "main_ics": [
+      {
+        "ref": "U3",
+        "name": "ESP32-S3-WROOM-1-N16R8",
+        "search": "ESP32-S3-WROOM",
+        "package": "Module",
+        "description": "ESP32-S3 WiFi/BLE Module 16MB Flash 8MB PSRAM",
+        "qty": 1
+      },
+      {
+        "ref": "U5",
+        "name": "TMC2209",
+        "search": "TMC2209",
+        "package": "QFN-28",
+        "description": "Stepper Driver - Agitation Motor",
+        "config": "MS1=GND, MS2=GND (1/8 step)",
+        "qty": 1
+      },
+      {
+        "ref": "U6",
+        "name": "TMC2209",
+        "search": "TMC2209",
+        "package": "QFN-28",
+        "description": "Stepper Driver - Z-Axis Motor",
+        "config": "MS1=VCC, MS2=GND (1/16 step)",
+        "qty": 1
+      },
+      {
+        "ref": "U7",
+        "name": "TMC2209",
+        "search": "TMC2209",
+        "package": "QFN-28",
+        "description": "Stepper Driver - Rotation Motor",
+        "config": "MS1=VCC, MS2=GND (1/16 step)",
+        "qty": 1
+      },
+      {
+        "ref": "U1",
+        "name": "Buck Regulator 5V",
+        "search": "MP1584 or XL1509-5.0 or LM2596S-5.0",
+        "package": "SOIC-8 or TO-263",
+        "description": "5V 3A Buck Regulator",
+        "qty": 1
+      },
+      {
+        "ref": "U2",
+        "name": "AMS1117-3.3",
+        "search": "AMS1117-3.3",
+        "package": "SOT-223",
+        "description": "3.3V 1A LDO Regulator",
+        "qty": 1
+      }
+    ],
+    "transistors": [
+      {
+        "ref": "Q1",
+        "name": "NPN Transistor",
+        "search": "MMBT3904 or S8050 or BC847",
+        "package": "SOT-23",
+        "description": "Auto-reset circuit transistor 1",
+        "qty": 1
+      },
+      {
+        "ref": "Q2",
+        "name": "NPN Transistor",
+        "search": "MMBT3904 or S8050 or BC847",
+        "package": "SOT-23",
+        "description": "Auto-reset circuit transistor 2",
+        "qty": 1
+      },
+      {
+        "ref": "Q3",
+        "name": "NPN Transistor",
+        "search": "MMBT3904 or S8050 or BC847",
+        "package": "SOT-23",
+        "description": "Buzzer driver",
+        "qty": 1
+      },
+      {
+        "ref": "Q4",
+        "name": "NPN Transistor",
+        "search": "MMBT3904 or S8050 or BC847",
+        "package": "SOT-23",
+        "description": "Relay driver",
+        "qty": 1
+      }
+    ],
+    "diodes": [
+      {
+        "ref": "D1",
+        "name": "SMBJ26A",
+        "search": "SMBJ26A or TVS 26V",
+        "package": "SMB",
+        "description": "TVS Diode 26V Input Protection",
+        "qty": 1
+      },
+      {
+        "ref": "D2",
+        "name": "SS34",
+        "search": "SS34 or SS54 Schottky",
+        "package": "SMA",
+        "description": "3A 40V Schottky Diode for Buck",
+        "qty": 1
+      },
+      {
+        "ref": "D3",
+        "name": "1N4148",
+        "search": "1N4148W or 1N4148WS",
+        "package": "SOD-123 or SOD-323",
+        "description": "Fast Switching Diode (auto-reset)",
+        "qty": 1
+      },
+      {
+        "ref": "D4",
+        "name": "1N4007 or M7",
+        "search": "M7 or RS1M or 1N4007W",
+        "package": "SMA",
+        "description": "Relay Flyback Diode",
+        "qty": 1
+      }
+    ],
+    "fuse_inductor": [
+      {
+        "ref": "F1",
+        "name": "5A PTC Fuse",
+        "search": "PPTC 5A 30V or MF-MSMF500",
+        "package": "2920 (required for 5A)",
+        "description": "Resettable Fuse 5A hold, 10A trip",
+        "specs": "Hold Current >= 5A, Voltage >= 30V",
+        "qty": 1
+      },
+      {
+        "ref": "L1",
+        "name": "33uH Inductor",
+        "search": "33uH 3A inductor or power inductor",
+        "package": "1210 or CD54",
+        "description": "Power Inductor for Buck (saturation >= 3A)",
+        "qty": 1
+      }
+    ],
+    "capacitors_electrolytic": [
+      {
+        "ref": "C1",
+        "name": "470uF/35V",
+        "search": "470uF 35V electrolytic",
+        "package": "10x10mm radial",
+        "description": "Input bulk capacitor",
+        "qty": 1
+      },
+      {
+        "ref": "C2",
+        "name": "100uF/10V",
+        "search": "100uF 10V electrolytic",
+        "package": "6.3x5.4mm",
+        "description": "5V output capacitor",
+        "qty": 1
+      },
+      {
+        "ref": "C9",
+        "name": "100uF/35V",
+        "search": "100uF 35V electrolytic",
+        "package": "8x10mm",
+        "description": "TMC U5 VMOT capacitor",
+        "qty": 1
+      },
+      {
+        "ref": "C12",
+        "name": "100uF/35V",
+        "search": "100uF 35V electrolytic",
+        "package": "8x10mm",
+        "description": "TMC U6 VMOT capacitor",
+        "qty": 1
+      },
+      {
+        "ref": "C15",
+        "name": "100uF/35V",
+        "search": "100uF 35V electrolytic",
+        "package": "8x10mm",
+        "description": "TMC U7 VMOT capacitor",
+        "qty": 1
+      }
+    ],
+    "capacitors_ceramic": [
+      {
+        "ref": "C3",
+        "name": "10uF",
+        "search": "10uF 0805 ceramic",
+        "package": "0805",
+        "description": "LDO input capacitor",
+        "qty": 1
+      },
+      {
+        "ref": "C4",
+        "name": "22uF",
+        "search": "22uF 0805 ceramic",
+        "package": "0805",
+        "description": "LDO output capacitor",
+        "qty": 1
+      },
+      {
+        "ref": "C5-C8, C10-C11, C13-C14, C16-C20",
+        "name": "100nF",
+        "search": "100nF 0603 ceramic",
+        "package": "0603",
+        "description": "Bypass capacitors (TMC, ESP32, filters)",
+        "qty": 14
+      }
+    ],
+    "resistors": [
+      {
+        "ref": "R1, R2, R6, R7, R8",
+        "name": "10K",
+        "search": "10K 0603 resistor",
+        "package": "0603",
+        "description": "Pull-up resistors",
+        "qty": 5
+      },
+      {
+        "ref": "R11, R12, R13, R16, R17, R18",
+        "name": "1K",
+        "search": "1K 0603 resistor",
+        "package": "0603",
+        "description": "Base resistors, LED resistors",
+        "qty": 6
+      },
+      {
+        "ref": "R14, R15",
+        "name": "4.7K",
+        "search": "4.7K 0603 resistor",
+        "package": "0603",
+        "description": "I2C pull-up resistors",
+        "qty": 2
+      },
+      {
+        "ref": "R3, R4, R5",
+        "name": "0.11R",
+        "search": "0.11 ohm 2512 or R110",
+        "package": "2512",
+        "description": "TMC2209 current sense resistors (2A)",
+        "qty": 3
+      },
+      {
+        "ref": "CC resistors",
+        "name": "5.1K",
+        "search": "5.1K 0603 resistor",
+        "package": "0603",
+        "description": "USB-C CC pin resistors",
+        "qty": 2
+      }
+    ],
+    "leds": [
+      {
+        "ref": "LED1",
+        "name": "Red LED",
+        "search": "red LED 0805",
+        "package": "0805",
+        "description": "Relay status indicator",
+        "qty": 1
+      },
+      {
+        "ref": "LED2",
+        "name": "Green LED",
+        "search": "green LED 0805",
+        "package": "0805",
+        "description": "5V Power OK indicator",
+        "qty": 1
+      },
+      {
+        "ref": "LED3",
+        "name": "Blue LED",
+        "search": "blue LED 0805",
+        "package": "0805",
+        "description": "3.3V OK indicator",
+        "qty": 1
+      },
+      {
+        "ref": "LED4",
+        "name": "Yellow LED",
+        "search": "yellow LED 0805",
+        "package": "0805",
+        "description": "Motor enable indicator",
+        "qty": 1
+      }
+    ],
+    "connectors": [
+      {
+        "ref": "J1",
+        "name": "2P Terminal Block",
+        "search": "terminal block 2P 5.08mm",
+        "package": "5.08mm pitch",
+        "description": "24V Power Input",
+        "qty": 1
+      },
+      {
+        "ref": "J2",
+        "name": "USB-C Connector",
+        "search": "USB Type-C 16P SMD",
+        "package": "USB-C SMD",
+        "description": "USB Type-C for programming",
+        "qty": 1
+      },
+      {
+        "ref": "J3, J4, J5, J12",
+        "name": "JST-XH 4P",
+        "search": "JST-XH 4P or XH 4pin",
+        "package": "JST-XH",
+        "description": "Motor connectors (x3), OLED connector (x1)",
+        "qty": 4
+      },
+      {
+        "ref": "J6, J7, J8",
+        "name": "JST-XH 3P",
+        "search": "JST-XH 3P or XH 3pin",
+        "package": "JST-XH",
+        "description": "Limit switch connectors",
+        "qty": 3
+      },
+      {
+        "ref": "J9, J10, J13",
+        "name": "JST-XH 2P",
+        "search": "JST-XH 2P or XH 2pin",
+        "package": "JST-XH",
+        "description": "Button connectors (x2), Fan header (x1)",
+        "qty": 3
+      },
+      {
+        "ref": "J11",
+        "name": "3P Terminal Block",
+        "search": "terminal block 3P 5.08mm",
+        "package": "5.08mm pitch",
+        "description": "Heater relay output (COM/NO/NC)",
+        "qty": 1
+      }
+    ],
+    "relay_buzzer": [
+      {
+        "ref": "K1",
+        "name": "5V Relay",
+        "search": "SRD-05VDC or HF46F-5 relay",
+        "package": "Through-hole relay",
+        "description": "5V 10A SPDT Relay for Heater",
+        "qty": 1
+      },
+      {
+        "ref": "BZ1",
+        "name": "Passive Buzzer",
+        "search": "passive buzzer 5V 12mm",
+        "package": "12mm through-hole",
+        "description": "5V Passive Buzzer for alerts",
+        "qty": 1
+      }
+    ]
+  },
+  "total_component_count": {
+    "ICs": 6,
+    "Transistors": 4,
+    "Diodes": 4,
+    "Fuse": 1,
+    "Inductor": 1,
+    "Electrolytic_Caps": 5,
+    "Ceramic_Caps": 16,
+    "Resistors": 18,
+    "LEDs": 4,
+    "Connectors": 13,
+    "Relay": 1,
+    "Buzzer": 1,
+    "TOTAL": 74
+  },
+  "netlist": {
+    "power_rails": {
+      "+24V": ["J1.1", "F1.in"],
+      "+24V_FUSED": ["F1.out", "D1.cathode", "U1.VIN", "U5.VM", "U6.VM", "U7.VM"],
+      "+5V": ["U1.VOUT", "U2.VIN", "K1.coil+", "BZ1.+", "LED2", "J2.VBUS"],
+      "+3V3": ["U2.VOUT", "U3.3V3", "U5.VCC_IO", "U6.VCC_IO", "U7.VCC_IO", "pullups"],
+      "GND": "Common ground - all grounds connected"
+    },
+    "esp32_gpio_mapping": {
+      "GPIO4": "U5.STEP (Agitation step)",
+      "GPIO5": "U5.DIR (Agitation direction)",
+      "GPIO6": "U5.ENN (Agitation enable)",
+      "GPIO35": "U6.STEP (Z-axis step)",
+      "GPIO36": "U6.DIR (Z-axis direction)",
+      "GPIO37": "U6.ENN (Z-axis enable)",
+      "GPIO38": "U7.STEP (Rotation step)",
+      "GPIO39": "U7.DIR (Rotation direction)",
+      "GPIO40": "U7.ENN (Rotation enable)",
+      "GPIO41": "J6.2 (Z-top limit) + R6 pullup",
+      "GPIO42": "J7.2 (Z-bottom limit) + R7 pullup",
+      "GPIO2": "J8.2 (Rotation home) + R8 pullup",
+      "GPIO7": "J9.2 (Start button) internal pullup",
+      "GPIO15": "J10.2 (Mode button) internal pullup",
+      "GPIO8": "J12.4 (I2C SDA) + R14 pullup",
+      "GPIO9": "J12.3 (I2C SCL) + R15 pullup",
+      "GPIO16": "Q3.base via R11 (Buzzer)",
+      "GPIO17": "Q4.base via R12 (Heater relay)",
+      "GPIO19": "J2.D- (USB)",
+      "GPIO20": "J2.D+ (USB)"
+    },
+    "auto_reset_circuit": {
+      "note": "DTR/RTS from USB-UART controls EN and GPIO0 for auto-programming",
+      "Q1": "DTR -> Q1.base, Q1.collector -> EN via D3",
+      "Q2": "RTS -> Q2.base, Q2.collector -> GPIO0",
+      "D3": "Between Q1.collector and EN (prevents backfeed)"
+    }
+  },
+  "build_order": [
+    "1. Power input: J1, F1, D1",
+    "2. Buck regulator: U1, L1, D2, C1, C2",
+    "3. LDO: U2, C3, C4",
+    "4. ESP32: U3, bypass caps",
+    "5. USB-C: J2, Q1, Q2, D3, CC resistors",
+    "6. TMC2209 #1: U5, R3, C7-C9",
+    "7. TMC2209 #2: U6, R4, C10-C12",
+    "8. TMC2209 #3: U7, R5, C13-C15",
+    "9. Limit switches: J6, J7, J8, R6-R8, C16-C18",
+    "10. Buttons: J9, J10, C19-C20",
+    "11. Buzzer: BZ1, Q3, R11",
+    "12. Relay: K1, Q4, R12, D4, J11, LED1, R13",
+    "13. I2C/OLED: J12, R14, R15",
+    "14. Status LEDs: LED2-4, R16-R18",
+    "15. Fan header: J13"
+  ]
+}
