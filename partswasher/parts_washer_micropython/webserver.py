@@ -111,6 +111,9 @@ class WebServer:
         elif path_only == "/api/wifi/status":
             return self._json_response(self.wifi.get_status())
 
+        elif path_only == "/api/wifi/static" and method == "POST":
+            return self._handle_static_ip(body)
+
         elif path_only == "/" or path_only == "/index.html":
             return self._serve_html()
 
@@ -217,6 +220,30 @@ class WebServer:
                     "success": False,
                     "error": "Connection failed"
                 }, 400)
+        except Exception as e:
+            return self._json_response({"success": False, "error": str(e)}, 400)
+
+    def _handle_static_ip(self, body):
+        """Handle static IP configuration."""
+        try:
+            data = json.loads(body)
+            static_ip = data.get("static_ip")
+
+            if static_ip:
+                subnet = data.get("subnet", "255.255.255.0")
+                gateway = data.get("gateway")
+                dns = data.get("dns", "8.8.8.8")
+                self.wifi.set_static_ip(static_ip, subnet, gateway, dns)
+                return self._json_response({
+                    "success": True,
+                    "message": f"Static IP {static_ip} configured. Reboot to apply."
+                })
+            else:
+                self.wifi.clear_static_ip()
+                return self._json_response({
+                    "success": True,
+                    "message": "Static IP cleared. Will use DHCP on next connect."
+                })
         except Exception as e:
             return self._json_response({"success": False, "error": str(e)}, 400)
 
@@ -390,6 +417,21 @@ class WebServer:
                 </div>
                 <button onclick="connectWifi()" class="btn btn-blue">Connect</button>
             </details>
+            <details>
+                <summary>Static IP Configuration</summary>
+                <div class="settings-grid">
+                    <label>Static IP:</label>
+                    <input type="text" id="static-ip" placeholder="e.g. 192.168.71.154">
+                    <label>Subnet:</label>
+                    <input type="text" id="static-subnet" value="255.255.255.0">
+                    <label>Gateway:</label>
+                    <input type="text" id="static-gateway" placeholder="e.g. 192.168.71.1">
+                    <label>DNS:</label>
+                    <input type="text" id="static-dns" value="8.8.8.8">
+                </div>
+                <button onclick="setStaticIP()" class="btn btn-blue">Set Static IP</button>
+                <button onclick="clearStaticIP()" class="btn btn-small">Use DHCP</button>
+            </details>
         </section>
     </div>
 
@@ -496,9 +538,60 @@ class WebServer:
             }
         }
 
+        async function setStaticIP() {
+            const static_ip = document.getElementById('static-ip').value;
+            const subnet = document.getElementById('static-subnet').value;
+            const gateway = document.getElementById('static-gateway').value;
+            const dns = document.getElementById('static-dns').value;
+            if (!static_ip) {
+                alert('Please enter a static IP address');
+                return;
+            }
+            try {
+                const res = await fetch('/api/wifi/static', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({static_ip, subnet, gateway, dns})
+                });
+                const data = await res.json();
+                alert(data.message || (data.success ? 'Static IP set!' : 'Failed'));
+            } catch (e) {
+                alert('Failed: ' + e);
+            }
+        }
+
+        async function clearStaticIP() {
+            try {
+                const res = await fetch('/api/wifi/static', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({})
+                });
+                const data = await res.json();
+                alert(data.message || 'DHCP mode set');
+                document.getElementById('static-ip').value = '';
+            } catch (e) {
+                alert('Failed: ' + e);
+            }
+        }
+
+        async function loadStaticIPConfig() {
+            try {
+                const res = await fetch('/api/wifi/status');
+                const data = await res.json();
+                if (data.static_ip) {
+                    document.getElementById('static-ip').value = data.static_ip;
+                    document.getElementById('static-subnet').value = data.subnet || '255.255.255.0';
+                    document.getElementById('static-gateway').value = data.gateway || '';
+                    document.getElementById('static-dns').value = data.dns || '8.8.8.8';
+                }
+            } catch (e) {}
+        }
+
         // Initialize
         fetchStatus();
         loadSettings();
+        loadStaticIPConfig();
         setInterval(fetchStatus, 2000);
     </script>
 </body>

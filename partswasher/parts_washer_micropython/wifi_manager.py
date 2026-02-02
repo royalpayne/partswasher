@@ -21,6 +21,7 @@ class WiFiManager:
         self.connected = False
         self.ap_mode = False
         self.ip_address = None
+        self.static_ip = None
 
     def load_config(self):
         """Load WiFi credentials from file."""
@@ -30,24 +31,34 @@ class WiFiManager:
         except:
             return None
 
-    def save_config(self, ssid, password):
-        """Save WiFi credentials to file."""
+    def save_config(self, ssid, password, static_ip=None, subnet=None, gateway=None, dns=None):
+        """Save WiFi credentials and optional static IP to file."""
         config = {"ssid": ssid, "password": password}
+        if static_ip:
+            config["static_ip"] = static_ip
+            config["subnet"] = subnet or "255.255.255.0"
+            config["gateway"] = gateway or static_ip.rsplit('.', 1)[0] + ".1"
+            config["dns"] = dns or "8.8.8.8"
         with open(self.CONFIG_FILE, "w") as f:
             json.dump(config, f)
 
-    def connect(self, ssid=None, password=None, timeout=15):
+    def connect(self, ssid=None, password=None, static_ip=None, subnet=None, gateway=None, dns=None, timeout=15):
         """
         Connect to WiFi network.
         If no credentials provided, tries to load from config.
         Returns True if connected, False if failed.
         """
         # Load saved config if not provided
+        config = None
         if ssid is None:
             config = self.load_config()
             if config:
                 ssid = config.get("ssid")
                 password = config.get("password")
+                static_ip = config.get("static_ip")
+                subnet = config.get("subnet")
+                gateway = config.get("gateway")
+                dns = config.get("dns")
             else:
                 print("No WiFi config found")
                 return False
@@ -60,6 +71,15 @@ class WiFiManager:
 
         # Enable station mode
         self.sta.active(True)
+
+        # Apply static IP before connecting if configured
+        if static_ip:
+            subnet = subnet or "255.255.255.0"
+            gateway = gateway or static_ip.rsplit('.', 1)[0] + ".1"
+            dns = dns or "8.8.8.8"
+            print(f"Setting static IP: {static_ip}")
+            self.sta.ifconfig((static_ip, subnet, gateway, dns))
+            self.static_ip = static_ip
 
         # Already connected to this network?
         if self.sta.isconnected() and self.sta.config("ssid") == ssid:
@@ -84,8 +104,8 @@ class WiFiManager:
         self.ip_address = self.sta.ifconfig()[0]
         print(f"Connected! IP: {self.ip_address}")
 
-        # Save working credentials
-        self.save_config(ssid, password)
+        # Save working credentials with static IP if provided
+        self.save_config(ssid, password, static_ip, subnet, gateway, dns)
         return True
 
     def start_ap(self, ssid=None, password=None):
@@ -147,13 +167,37 @@ class WiFiManager:
 
     def get_status(self):
         """Get current WiFi status."""
+        config = self.load_config() or {}
         return {
             "connected": self.connected,
             "ap_mode": self.ap_mode,
             "ip": self.ip_address,
             "ssid": self.sta.config("ssid") if self.connected else None,
-            "rssi": self.sta.status("rssi") if self.connected else None
+            "rssi": self.sta.status("rssi") if self.connected else None,
+            "static_ip": config.get("static_ip"),
+            "subnet": config.get("subnet"),
+            "gateway": config.get("gateway"),
+            "dns": config.get("dns")
         }
+
+    def set_static_ip(self, static_ip, subnet=None, gateway=None, dns=None):
+        """Set static IP configuration (saves to config, takes effect on next connect)."""
+        config = self.load_config() or {}
+        ssid = config.get("ssid", "")
+        password = config.get("password", "")
+        self.save_config(ssid, password, static_ip, subnet, gateway, dns)
+        print(f"Static IP configured: {static_ip}")
+        return True
+
+    def clear_static_ip(self):
+        """Clear static IP configuration (use DHCP)."""
+        config = self.load_config() or {}
+        ssid = config.get("ssid", "")
+        password = config.get("password", "")
+        self.save_config(ssid, password)  # Save without static IP
+        self.static_ip = None
+        print("Static IP cleared, will use DHCP")
+        return True
 
     def auto_connect(self):
         """
