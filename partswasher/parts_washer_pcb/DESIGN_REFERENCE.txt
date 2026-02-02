@@ -1,0 +1,262 @@
+================================================================================
+PARTS WASHER CONTROLLER - PCB DESIGN REFERENCE
+================================================================================
+Version: 1.0
+Date: 2026-02-01
+Board Size: 100mm x 80mm (DIN Rail Compatible - 6 modules)
+Layers: 4 (Top, GND, PWR, Bottom)
+
+================================================================================
+SECTION 1: ESP32-S3-WROOM-1 PIN MAPPING
+================================================================================
+
+MODULE: ESP32-S3-WROOM-1-N16R8 (16MB Flash, 8MB PSRAM)
+
+GPIO    Function            Direction   Notes
+----    --------            ---------   -----
+GPIO0   BOOT (Strapping)    Input       Hold LOW during reset to enter download mode
+GPIO2   ROT_HOME            Input       Rotation home limit switch (NC, active LOW)
+GPIO3   UART0_RX            Input       USB-UART RX (directly to USB-C D+)
+GPIO4   AGIT_STEP           Output      Agitation motor step pulse
+GPIO5   AGIT_DIR            Output      Agitation motor direction
+GPIO6   AGIT_EN             Output      Agitation motor enable (active LOW)
+GPIO7   BTN_START           Input       Start button (internal pull-up, active LOW)
+GPIO8   I2C_SDA             I/O         I2C data for OLED display
+GPIO9   I2C_SCL             Output      I2C clock for OLED display
+GPIO15  BTN_MODE            Input       Mode button (internal pull-up, active LOW)
+GPIO16  BUZZER              Output      Buzzer PWM control
+GPIO17  HEATER_RELAY        Output      Heater relay control (active LOW)
+GPIO19  USB_D-              I/O         Native USB D-
+GPIO20  USB_D+              I/O         Native USB D+
+GPIO35  Z_STEP              Output      Z-axis motor step pulse
+GPIO36  Z_DIR               Output      Z-axis motor direction
+GPIO37  Z_EN                Output      Z-axis motor enable (active LOW)
+GPIO38  ROT_STEP            Output      Rotation motor step pulse
+GPIO39  ROT_DIR             Output      Rotation motor direction
+GPIO40  ROT_EN              Output      Rotation motor enable (active LOW)
+GPIO41  Z_TOP_LIMIT         Input       Z-axis top limit switch (NC, active LOW)
+GPIO42  Z_BOT_LIMIT         Input       Z-axis bottom limit switch (NC, active LOW)
+GPIO43  UART0_TX            Output      Debug UART TX (directly to USB-C D-)
+GPIO46  BOOT (Strapping)    Input       Must be LOW or floating at boot
+EN      RESET               Input       Active LOW reset, connect to auto-reset circuit
+
+================================================================================
+SECTION 2: TMC2209 DRIVER CONFIGURATION
+================================================================================
+
+TMC2209 PINOUT (QFN-28):
+Pin  Name      Connect To          Notes
+---  ----      ----------          -----
+1    GND       Ground
+2    OB1       Motor B1            Motor coil B+
+3    BRB       R_SENSE             Current sense resistor for B
+4    OB2       Motor B2            Motor coil B-
+5    VCC_IO    3.3V                Logic supply
+6    CPO       C_CP                Charge pump capacitor
+7    CPI       C_CP                Charge pump capacitor
+8    VCP       VCC via 100nF       Charge pump output
+9    VM        24V                 Motor supply
+10   VREF      NC                  Internal reference
+11   OA2       Motor A2            Motor coil A-
+12   BRA       R_SENSE             Current sense resistor for A
+13   OA1       Motor A1            Motor coil A+
+14   GND       Ground              Exposed pad - thermal connection
+15   DIR       GPIOxx              Direction input
+16   STEP      GPIOxx              Step pulse input
+17   CLK       NC                  Internal oscillator
+18   PDN_UART  4.7K to VCC         UART/Standalone mode select
+19   NC        NC                  Not connected
+20   INDEX     NC                  Microstep index output
+21   DIAG      NC or GPIO          Diagnostics/Stall output
+22   MS1       See below           Microstep selection
+23   MS2       See below           Microstep selection
+24   ENN       GPIOxx              Enable input (active LOW)
+25   SPREAD    VCC or GND          SpreadCycle/StealthChop select
+26   VCC_IO    3.3V                Logic supply (tie together)
+
+MICROSTEPPING CONFIGURATION:
+MS2  MS1  Microsteps  Steps/Rev (200 full-step motor)
+---  ---  ----------  ---------------------------------
+GND  GND  1/8         1600
+GND  VCC  1/16        3200     <- Z-Axis and Rotation
+VCC  GND  1/32        6400
+VCC  VCC  1/64        12800
+
+AGITATION MOTOR:  MS1=GND, MS2=GND (1/8 stepping = 1600 steps/rev)
+Z-AXIS MOTOR:     MS1=VCC, MS2=GND (1/16 stepping = 3200 steps/rev)
+ROTATION MOTOR:   MS1=VCC, MS2=GND (1/16 stepping = 3200 steps/rev)
+
+CURRENT SENSE RESISTOR:
+I_RMS = 0.325V / R_SENSE
+For 2A: R_SENSE = 0.325V / 2A = 0.1625 ohms
+Use: 0.11 ohm (gives ~2.95A max, adjustable via VREF)
+
+================================================================================
+SECTION 3: POWER SUPPLY DESIGN
+================================================================================
+
+INPUT:
+- Voltage: 24V DC (nominal), 20-28V acceptable
+- Current: 6A max (3 motors at 2A each)
+- Protection: 5A PTC fuse, SMBJ26A TVS diode
+
+5V RAIL (MP1584EN):
+- Input: 24V
+- Output: 5V @ 3A
+- Efficiency: ~90%
+- Components:
+  - L1: 33uH power inductor (saturation current > 3A)
+  - D2: SS34 Schottky (3A 40V)
+  - C_in: 100uF electrolytic
+  - C_out: 100uF electrolytic
+  - Feedback: Internal 0.8V reference
+
+3.3V RAIL (AMS1117-3.3):
+- Input: 5V
+- Output: 3.3V @ 1A
+- Dropout: 1.1V typical
+- Components:
+  - C_in: 10uF ceramic
+  - C_out: 22uF ceramic
+
+POWER DISTRIBUTION:
+24V Rail:
+  - TMC2209 #1 VMOT (2A max)
+  - TMC2209 #2 VMOT (2A max)
+  - TMC2209 #3 VMOT (2A max)
+
+5V Rail:
+  - TMC2209 VCC (all 3, ~150mA total)
+  - Relay coil (~80mA)
+  - Buzzer (~50mA)
+  - Status LEDs (~30mA)
+  - USB-UART (if used, ~20mA)
+
+3.3V Rail:
+  - ESP32-S3 module (~500mA peak during WiFi TX)
+  - I2C pull-ups
+  - Limit switch pull-ups
+
+================================================================================
+SECTION 4: CONNECTOR PINOUTS
+================================================================================
+
+J1 - POWER INPUT (2-pin 5.08mm Terminal Block)
+Pin 1: +24V
+Pin 2: GND
+
+J3/J4/J5 - MOTOR CONNECTORS (4-pin JST-XH)
+Pin 1: A1 (Motor coil A+)
+Pin 2: A2 (Motor coil A-)
+Pin 3: B1 (Motor coil B+)
+Pin 4: B2 (Motor coil B-)
+
+J6/J7/J8 - LIMIT SWITCHES (3-pin JST-XH)
+Pin 1: GND
+Pin 2: Signal (to GPIO with pull-up)
+Pin 3: 3.3V (for active sensors, NC for mechanical)
+
+J9/J10 - BUTTONS (2-pin JST-XH)
+Pin 1: GND
+Pin 2: Signal (to GPIO)
+
+J11 - HEATER RELAY OUTPUT (3-pin 5.08mm Terminal Block)
+Pin 1: COM (Common)
+Pin 2: NO (Normally Open)
+Pin 3: NC (Normally Closed)
+
+J12 - OLED DISPLAY (4-pin JST-XH)
+Pin 1: GND
+Pin 2: VCC (3.3V)
+Pin 3: SCL (GPIO9)
+Pin 4: SDA (GPIO8)
+
+J13 - FAN HEADER (2-pin JST-XH)
+Pin 1: GND
+Pin 2: +5V (or +12V if separate rail)
+
+================================================================================
+SECTION 5: PCB LAYOUT GUIDELINES
+================================================================================
+
+LAYER STACKUP (4-layer, 1.6mm):
+Layer 1 (Top):     Signal + Components
+Layer 2 (Inner 1): Ground plane (solid)
+Layer 3 (Inner 2): Power planes (24V, 5V, 3.3V)
+Layer 4 (Bottom):  Signal + Components
+
+TRACE WIDTHS:
+- Signal traces: 0.25mm minimum
+- 3.3V power: 0.5mm
+- 5V power: 0.75mm
+- 24V power: 1.0mm minimum
+- Motor outputs: 1.0mm minimum
+- Ground returns: 1.0mm minimum
+
+VIA SPECIFICATIONS:
+- Signal vias: 0.6mm pad, 0.3mm drill
+- Power vias: 0.8mm pad, 0.4mm drill
+- Thermal vias: 0.8mm pad, 0.4mm drill (under TMC2209)
+
+THERMAL MANAGEMENT:
+- Place thermal vias under each TMC2209 exposed pad (minimum 9 vias per driver)
+- Connect thermal vias to inner ground plane
+- Provide heatsink mounting holes near drivers
+- Consider 2oz copper on inner layers for better heat spreading
+
+COMPONENT PLACEMENT:
+1. ESP32-S3 module near USB connector
+2. Power input and regulators on one edge
+3. TMC2209 drivers spread across board for heat distribution
+4. Keep limit switch connectors on same edge as motors
+5. Place bulk capacitors close to TMC2209 VMOT pins
+6. Keep I2C traces short (< 100mm)
+7. Place buttons/OLED connector on front edge for panel mount
+
+CLEARANCE AND CREEPAGE:
+- High voltage (heater relay): 3mm minimum clearance
+- 24V to logic: 0.5mm minimum
+- All other: 0.2mm minimum
+
+================================================================================
+SECTION 6: MECHANICAL
+================================================================================
+
+BOARD DIMENSIONS:
+- Width: 100mm
+- Height: 80mm
+- Corners: 3mm radius
+
+MOUNTING HOLES:
+- 4x M3 mounting holes (3.2mm diameter)
+- Positions: 5mm from edges
+- For DIN rail clip mounting
+
+DIN RAIL COMPATIBILITY:
+- Board fits 6-module width (105mm)
+- Use standard DIN rail mounting clips
+- Recommended enclosure: Phoenix Contact ME series or similar
+
+CONNECTOR PLACEMENT (suggested):
+- Top edge: OLED, Buttons
+- Right edge: Motor connectors (J3, J4, J5)
+- Bottom edge: Limit switches (J6, J7, J8)
+- Left edge: Power input (J1), Heater output (J11)
+- Internal: USB-C (accessible through enclosure cutout)
+
+================================================================================
+SECTION 7: TESTING PROCEDURE
+================================================================================
+
+1. Visual inspection - Check for solder bridges
+2. Power test - Apply 24V, verify 5V and 3.3V rails
+3. ESP32 test - Connect USB, verify programming
+4. Motor driver test - Enable each driver, verify no heating without motor
+5. Motor test - Connect motors, test step/direction
+6. Limit switch test - Verify proper pull-up and signal
+7. Button test - Verify debounce and input
+8. Relay test - Activate relay, verify contact closure
+9. I2C test - Connect OLED, verify display
+10. Full system test - Run MicroPython code
+
+================================================================================

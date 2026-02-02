@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 440" width="520" height="440">
+  <defs>
+    <style>
+      .board { fill: #1a472a; stroke: #0d2818; stroke-width: 2; }
+      .copper { fill: #b87333; }
+      .silkscreen { fill: white; font-family: monospace; font-size: 8px; }
+      .component { fill: #2d2d2d; stroke: #1a1a1a; stroke-width: 1; }
+      .ic { fill: #1a1a1a; stroke: #333; stroke-width: 1; }
+      .connector { fill: #f5f5dc; stroke: #333; stroke-width: 1; }
+      .relay { fill: #4169e1; stroke: #333; stroke-width: 1; }
+      .cap { fill: #666; stroke: #333; stroke-width: 1; }
+      .led { stroke: #333; stroke-width: 1; }
+      .mounting { fill: none; stroke: #888; stroke-width: 2; }
+      .label { fill: white; font-family: Arial, sans-serif; font-size: 7px; }
+      .title { fill: #333; font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; }
+      .subtitle { fill: #666; font-family: Arial, sans-serif; font-size: 10px; }
+      .dimension { fill: #666; font-family: monospace; font-size: 9px; }
+    </style>
+  </defs>
+
+  <!-- Title -->
+  <text x="260" y="25" text-anchor="middle" class="title">Parts Washer Controller PCB - Component Layout</text>
+  <text x="260" y="42" text-anchor="middle" class="subtitle">100mm x 80mm - 4 Layer - DIN Rail Mount</text>
+
+  <!-- PCB Board Outline -->
+  <rect x="10" y="60" width="500" height="370" rx="15" class="board"/>
+
+  <!-- Mounting Holes (4 corners) -->
+  <circle cx="35" cy="85" r="8" class="mounting"/>
+  <circle cx="485" cy="85" r="8" class="mounting"/>
+  <circle cx="35" cy="405" r="8" class="mounting"/>
+  <circle cx="485" cy="405" r="8" class="mounting"/>
+
+  <!-- Dimensions -->
+  <text x="260" y="435" text-anchor="middle" class="dimension">100mm</text>
+  <line x1="10" y1="432" x2="510" y2="432" stroke="#666" stroke-width="1"/>
+  <line x1="10" y1="428" x2="10" y2="436" stroke="#666" stroke-width="1"/>
+  <line x1="510" y1="428" x2="510" y2="436" stroke="#666" stroke-width="1"/>
+
+  <!-- ===== POWER INPUT SECTION (Left Side) ===== -->
+  <text x="30" y="115" class="silkscreen">POWER</text>
+
+  <!-- J1: 24V Input Terminal Block -->
+  <rect x="20" y="120" width="40" height="30" class="connector"/>
+  <text x="40" y="140" text-anchor="middle" class="label">J1</text>
+  <text x="40" y="165" text-anchor="middle" class="silkscreen">24V IN</text>
+
+  <!-- Fuse -->
+  <rect x="70" y="125" width="25" height="10" class="component"/>
+  <text x="82" y="133" text-anchor="middle" style="font-size:5px; fill:white;">F1 5A</text>
+
+  <!-- TVS Diode -->
+  <rect x="70" y="140" width="15" height="8" class="component"/>
+  <text x="77" y="147" text-anchor="middle" style="font-size:4px; fill:white;">TVS</text>
+
+  <!-- ===== VOLTAGE REGULATORS ===== -->
+  <!-- MP1584 5V Buck -->
+  <rect x="100" y="120" width="50" height="35" class="ic"/>
+  <text x="125" y="142" text-anchor="middle" class="label">MP1584</text>
+  <text x="125" y="168" text-anchor="middle" class="silkscreen">5V 3A</text>
+
+  <!-- Inductor -->
+  <rect x="155" y="125" width="20" height="15" class="component"/>
+  <text x="165" y="136" text-anchor="middle" style="font-size:5px; fill:white;">L1</text>
+
+  <!-- AMS1117 3.3V LDO -->
+  <rect x="180" y="125" width="35" height="20" class="ic"/>
+  <text x="197" y="139" text-anchor="middle" class="label">AMS1117</text>
+  <text x="197" y="158" text-anchor="middle" class="silkscreen">3.3V</text>
+
+  <!-- Bulk Caps -->
+  <ellipse cx="115" cy="175" rx="8" ry="8" class="cap"/>
+  <text x="115" y="178" text-anchor="middle" style="font-size:5px; fill:white;">470u</text>
+  <ellipse cx="145" cy="175" rx="6" ry="6" class="cap"/>
+  <text x="145" y="178" text-anchor="middle" style="font-size:4px; fill:white;">100u</text>
+
+  <!-- ===== ESP32-S3 MODULE (Center) ===== -->
+  <rect x="230" y="90" width="90" height="55" class="ic"/>
+  <rect x="235" y="95" width="80" height="45" fill="#2a2a2a"/>
+  <text x="275" y="115" text-anchor="middle" style="fill:#c0c0c0; font-size:8px;">ESP32-S3</text>
+  <text x="275" y="128" text-anchor="middle" style="fill:#c0c0c0; font-size:6px;">WROOM-1</text>
+  <text x="275" y="138" text-anchor="middle" style="fill:#808080; font-size:5px;">N16R8</text>
+
+  <!-- Antenna keepout -->
+  <rect x="235" y="95" width="80" height="12" fill="none" stroke="#ff6600" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="275" y="155" text-anchor="middle" class="silkscreen">U3</text>
+
+  <!-- ===== USB-C (Top Edge) ===== -->
+  <rect x="340" y="65" width="35" height="18" rx="3" class="connector"/>
+  <text x="357" y="78" text-anchor="middle" class="label">USB-C</text>
+  <text x="357" y="95" text-anchor="middle" class="silkscreen">J2</text>
+
+  <!-- ===== TMC2209 DRIVERS (Bottom Half) ===== -->
+
+  <!-- TMC2209 #1 - Agitation -->
+  <rect x="50" y="220" width="55" height="55" class="ic"/>
+  <text x="77" y="245" text-anchor="middle" class="label">TMC2209</text>
+  <text x="77" y="258" text-anchor="middle" style="fill:#aaa; font-size:6px;">#1 AGIT</text>
+  <text x="77" y="290" text-anchor="middle" class="silkscreen">U5</text>
+  <!-- Heatsink area indicator -->
+  <rect x="55" y="225" width="45" height="45" fill="none" stroke="#ff0" stroke-width="1" stroke-dasharray="3,2"/>
+
+  <!-- TMC2209 #2 - Z-Axis -->
+  <rect x="130" y="220" width="55" height="55" class="ic"/>
+  <text x="157" y="245" text-anchor="middle" class="label">TMC2209</text>
+  <text x="157" y="258" text-anchor="middle" style="fill:#aaa; font-size:6px;">#2 Z-AXIS</text>
+  <text x="157" y="290" text-anchor="middle" class="silkscreen">U6</text>
+  <rect x="135" y="225" width="45" height="45" fill="none" stroke="#ff0" stroke-width="1" stroke-dasharray="3,2"/>
+
+  <!-- TMC2209 #3 - Rotation -->
+  <rect x="210" y="220" width="55" height="55" class="ic"/>
+  <text x="237" y="245" text-anchor="middle" class="label">TMC2209</text>
+  <text x="237" y="258" text-anchor="middle" style="fill:#aaa; font-size:6px;">#3 ROTATE</text>
+  <text x="237" y="290" text-anchor="middle" class="silkscreen">U7</text>
+  <rect x="215" y="225" width="45" height="45" fill="none" stroke="#ff0" stroke-width="1" stroke-dasharray="3,2"/>
+
+  <!-- Sense Resistors (under each driver) -->
+  <rect x="65" y="280" width="25" height="8" class="component"/>
+  <text x="77" y="287" text-anchor="middle" style="font-size:4px; fill:white;">R3 0.11R</text>
+  <rect x="145" y="280" width="25" height="8" class="component"/>
+  <text x="157" y="287" text-anchor="middle" style="font-size:4px; fill:white;">R4 0.11R</text>
+  <rect x="225" y="280" width="25" height="8" class="component"/>
+  <text x="237" y="287" text-anchor="middle" style="font-size:4px; fill:white;">R5 0.11R</text>
+
+  <!-- VMOT Caps -->
+  <ellipse cx="77" cy="305" rx="8" ry="8" class="cap"/>
+  <ellipse cx="157" cy="305" rx="8" ry="8" class="cap"/>
+  <ellipse cx="237" cy="305" rx="8" ry="8" class="cap"/>
+
+  <!-- ===== MOTOR CONNECTORS (Right Edge) ===== -->
+  <text x="455" y="210" text-anchor="middle" class="silkscreen">MOTORS</text>
+
+  <!-- J3: Agitation Motor -->
+  <rect x="440" y="220" width="55" height="25" class="connector"/>
+  <text x="467" y="237" text-anchor="middle" class="label">J3 AGIT</text>
+
+  <!-- J4: Z-Axis Motor -->
+  <rect x="440" y="255" width="55" height="25" class="connector"/>
+  <text x="467" y="272" text-anchor="middle" class="label">J4 Z-AXIS</text>
+
+  <!-- J5: Rotation Motor -->
+  <rect x="440" y="290" width="55" height="25" class="connector"/>
+  <text x="467" y="307" text-anchor="middle" class="label">J5 ROTATE</text>
+
+  <!-- ===== LIMIT SWITCH CONNECTORS (Bottom Edge) ===== -->
+  <text x="100" y="340" text-anchor="middle" class="silkscreen">LIMITS</text>
+
+  <!-- J6: Z-Top -->
+  <rect x="50" y="350" width="40" height="20" class="connector"/>
+  <text x="70" y="364" text-anchor="middle" class="label">J6 Z-TOP</text>
+
+  <!-- J7: Z-Bottom -->
+  <rect x="100" y="350" width="40" height="20" class="connector"/>
+  <text x="120" y="364" text-anchor="middle" class="label">J7 Z-BOT</text>
+
+  <!-- J8: Rotation Home -->
+  <rect x="150" y="350" width="40" height="20" class="connector"/>
+  <text x="170" y="364" text-anchor="middle" class="label">J8 R-HOME</text>
+
+  <!-- ===== BUTTONS (Top Edge) ===== -->
+  <text x="430" y="80" text-anchor="middle" class="silkscreen">BUTTONS</text>
+
+  <!-- J9: START -->
+  <rect x="400" y="85" width="30" height="18" class="connector"/>
+  <text x="415" y="98" text-anchor="middle" class="label">START</text>
+
+  <!-- J10: MODE -->
+  <rect x="440" y="85" width="30" height="18" class="connector"/>
+  <text x="455" y="98" text-anchor="middle" class="label">MODE</text>
+
+  <!-- ===== RELAY (Center Right) ===== -->
+  <rect x="350" y="180" width="60" height="45" class="relay"/>
+  <text x="380" y="200" text-anchor="middle" style="fill:white; font-size:8px;">RELAY</text>
+  <text x="380" y="215" text-anchor="middle" style="fill:#ccc; font-size:6px;">K1 10A</text>
+  <text x="380" y="235" text-anchor="middle" class="silkscreen">HEATER</text>
+
+  <!-- J11: Heater Output -->
+  <rect x="420" y="180" width="40" height="35" class="connector"/>
+  <text x="440" y="195" text-anchor="middle" class="label">J11</text>
+  <text x="440" y="208" text-anchor="middle" style="font-size:5px; fill:#333;">COM</text>
+  <text x="440" y="216" text-anchor="middle" style="font-size:5px; fill:#333;">NO/NC</text>
+
+  <!-- ===== I2C OLED HEADER ===== -->
+  <rect x="320" y="120" width="35" height="20" class="connector"/>
+  <text x="337" y="134" text-anchor="middle" class="label">J12 OLED</text>
+  <text x="337" y="152" text-anchor="middle" class="silkscreen">I2C</text>
+
+  <!-- ===== BUZZER ===== -->
+  <circle cx="300" y="185" r="15" fill="#333" stroke="#222" stroke-width="2"/>
+  <circle cx="300" cy="185" r="10" fill="#1a1a1a"/>
+  <text x="300" y="188" text-anchor="middle" style="fill:#666; font-size:5px;">BUZZ</text>
+  <text x="300" y="210" text-anchor="middle" class="silkscreen">BZ1</text>
+
+  <!-- ===== STATUS LEDs ===== -->
+  <text x="420" y="120" text-anchor="middle" class="silkscreen">STATUS</text>
+  <circle cx="405" cy="135" r="4" fill="#00ff00" class="led"/>
+  <circle cx="420" cy="135" r="4" fill="#0088ff" class="led"/>
+  <circle cx="435" cy="135" r="4" fill="#ffff00" class="led"/>
+  <circle cx="450" cy="135" r="4" fill="#ff0000" class="led"/>
+  <text x="405" y="150" text-anchor="middle" style="font-size:5px; fill:white;">PWR</text>
+  <text x="420" y="150" text-anchor="middle" style="font-size:5px; fill:white;">3V3</text>
+  <text x="435" y="150" text-anchor="middle" style="font-size:5px; fill:white;">MTR</text>
+  <text x="450" y="150" text-anchor="middle" style="font-size:5px; fill:white;">RLY</text>
+
+  <!-- ===== FAN HEADER ===== -->
+  <rect x="280" y="310" width="25" height="15" class="connector"/>
+  <text x="292" y="322" text-anchor="middle" class="label">FAN</text>
+  <text x="292" y="338" text-anchor="middle" class="silkscreen">J13</text>
+
+  <!-- ===== GROUND PLANE INDICATOR ===== -->
+  <rect x="320" y="340" width="170" height="70" fill="none" stroke="#b87333" stroke-width="1" stroke-dasharray="5,3"/>
+  <text x="405" y="360" text-anchor="middle" style="fill:#b87333; font-size:8px;">COPPER POUR</text>
+  <text x="405" y="375" text-anchor="middle" style="fill:#b87333; font-size:6px;">GND PLANE</text>
+  <text x="405" y="390" text-anchor="middle" style="fill:#b87333; font-size:6px;">(All layers)</text>
+
+  <!-- ===== LEGEND ===== -->
+  <rect x="320" y="250" width="100" height="50" fill="#222" rx="3"/>
+  <text x="370" y="265" text-anchor="middle" style="fill:white; font-size:7px; font-weight:bold;">LEGEND</text>
+  <rect x="325" y="272" width="10" height="6" fill="#1a1a1a" stroke="#333"/>
+  <text x="340" y="278" style="fill:white; font-size:6px;">IC/Module</text>
+  <rect x="325" y="282" width="10" height="6" fill="#f5f5dc" stroke="#333"/>
+  <text x="340" y="288" style="fill:white; font-size:6px;">Connector</text>
+  <rect x="370" y="272" width="10" height="6" fill="none" stroke="#ff0" stroke-dasharray="2,1"/>
+  <text x="385" y="278" style="fill:white; font-size:6px;">Heatsink</text>
+  <circle cx="375" cy="288" r="3" fill="#666"/>
+  <text x="385" y="291" style="fill:white; font-size:6px;">Capacitor</text>
+
+</svg>

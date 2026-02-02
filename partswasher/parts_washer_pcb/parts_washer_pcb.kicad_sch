@@ -1,0 +1,28 @@
+(kicad_sch
+  (version 20231120)
+  (generator "eeschema")
+  (generator_version "8.0")
+  (uuid "e63e39d7-6ac0-4ffd-8aa3-1841a4541b55")
+  (paper "A3")
+  (title_block
+    (title "Parts Washer Controller")
+    (date "2026-02-01")
+    (rev "1.0")
+    (company "DIY Project")
+    (comment 1 "ESP32-S3 + 3x TMC2209")
+    (comment 2 "24V Input - DIN Rail Mount")
+  )
+  (lib_symbols)
+  (text "PARTS WASHER CONTROLLER - DESIGN REFERENCE\n\nSee DESIGN_REFERENCE.txt for complete pin mapping and BOM.csv for parts list.\n\nThis is a placeholder schematic. Use KiCad symbol libraries to build the actual circuit."
+    (exclude_from_sim no)
+    (at 50.8 50.8 0)
+    (effects
+      (font (size 2.54 2.54))
+      (justify left)
+    )
+    (uuid "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+  )
+  (sheet_instances
+    (path "/" (page "1"))
+  )
+)

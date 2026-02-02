@@ -5,7 +5,7 @@ ESP32-S3 Pin Definitions and Settings
 
 # ============== PIN DEFINITIONS (ESP32-S3) ==============
 
-# Agitation Motor (TB6600 External)
+# Agitation Motor (TMC2209 On-PCB)
 PIN_AGIT_STEP = 4
 PIN_AGIT_DIR = 5
 PIN_AGIT_EN = 6
@@ -38,9 +38,9 @@ OLED_ADDR = 0x3C
 
 # ============== MOTOR CONFIGURATION ==============
 
-# Agitation Motor (NEMA23 + TB6600 half-step)
-AGIT_MICROSTEPS = 2
-AGIT_STEPS_PER_REV = 200 * AGIT_MICROSTEPS  # 400 steps/rev
+# Agitation Motor (NEMA23 + TMC2209 1/8 microstepping)
+AGIT_MICROSTEPS = 8
+AGIT_STEPS_PER_REV = 200 * AGIT_MICROSTEPS  # 1600 steps/rev
 
 # Z-Axis Motor (NEMA17 + TMC2209 16x microstepping)
 Z_MICROSTEPS = 16

@@ -1,16 +1,20 @@
 """
 Parts Washer v2.0 - Main Application
 3-Axis Automated Watchmaker's Parts Washer
-ESP32-S3 with MicroPython
+ESP32-S3 with MicroPython + Web Interface
 """
 
 import time
 from machine import Pin, I2C, PWM
-import asyncio
+import uasyncio as asyncio
+import gc
 
 import config
 from stepper import AgitationMotor, ZAxisMotor, RotationMotor
 from ssd1306 import SSD1306_I2C
+from wifi_manager import WiFiManager
+from settings import settings
+from webserver import WebServer
 
 
 class PartsWasher:
@@ -472,12 +476,69 @@ class PartsWasher:
             self.rot_motor.next_station()
             self.current_station = self.rot_motor.get_station()
 
+    # ============== WEB API HELPER METHODS ==============
+
+    def get_mode_name(self):
+        """Get current mode name."""
+        return config.MODE_NAMES[self.current_mode]
+
+    def get_station_name(self):
+        """Get current station name."""
+        return config.STATION_NAMES[self.current_station]
+
+    def set_mode(self, mode):
+        """Set operating mode."""
+        if 0 <= mode < config.NUM_MODES:
+            self.current_mode = mode
+            print(f"Mode set to: {config.MODE_NAMES[mode]}")
+
+    def start_cycle(self):
+        """Start the current mode (for web API)."""
+        if not self.is_homed:
+            print("Cannot start - not homed")
+            return False
+        self.start_current_mode()
+        return True
+
+    def stop_cycle(self):
+        """Stop current operation (for web API)."""
+        self.stop_all()
+
+    def move_to_station(self, station):
+        """Move to station (for web API)."""
+        if 0 <= station < config.NUM_STATIONS:
+            self.go_to_station(station)
+
+    def jog_z(self, mm):
+        """Jog Z-axis by mm amount."""
+        current = self.z_motor.get_position_mm()
+        new_pos = max(0, min(config.Z_MAX_TRAVEL_MM, current + mm))
+        self.z_motor.set_speed_rpm(60)
+        self.z_motor.move_to_mm(new_pos)
+
+    def set_heater(self, state):
+        """Set heater state."""
+        self.heater.value(0 if state else 1)
+        print(f"Heater {'ON' if state else 'OFF'}")
+
     # ============== MAIN LOOP ==============
 
-    async def run(self):
+    async def run(self, wifi, webserver):
         """Main application loop."""
         self.show_startup()
         await asyncio.sleep(2)
+
+        # Start web server
+        await webserver.start()
+
+        # Show IP address on display
+        if self.display and wifi.ip_address:
+            self.display.fill(0)
+            self.display.text("WiFi Connected", 10, 10, 1)
+            self.display.text(wifi.ip_address, 15, 30, 1)
+            self.display.text("Open in browser", 10, 50, 1)
+            self.display.show()
+            await asyncio.sleep(3)
 
         self.show_home_prompt()
 
@@ -507,8 +568,27 @@ def main():
     """Main entry point."""
     washer = PartsWasher()
 
+    # Initialize WiFi
+    print("Initializing WiFi...")
+    wifi = WiFiManager()
+
+    # Try to connect to saved network, fallback to AP mode
+    if not wifi.auto_connect():
+        print("WiFi not configured - AP mode active")
+        if washer.display:
+            washer.display.fill(0)
+            washer.display.text("WiFi Setup", 25, 5, 1)
+            washer.display.text("Connect to:", 20, 20, 1)
+            washer.display.text(wifi.AP_SSID, 25, 32, 1)
+            washer.display.text("Password:", 25, 44, 1)
+            washer.display.text(wifi.AP_PASSWORD, 20, 56, 1)
+            washer.display.show()
+
+    # Initialize web server
+    webserver = WebServer(washer, wifi, settings)
+
     try:
-        asyncio.run(washer.run())
+        asyncio.run(washer.run(wifi, webserver))
     except KeyboardInterrupt:
         print("Interrupted")
         washer.stop_all()
