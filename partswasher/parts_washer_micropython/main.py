@@ -87,6 +87,7 @@ class PartsWasher:
         self.is_homed = False
         self.is_running = False
         self.auto_step = 0
+        self.auto_running = False
         self.mode_start_time = 0
 
         # Button state
@@ -149,7 +150,7 @@ class PartsWasher:
 
         # Auto cycle progress
         if self.current_mode == config.MODE_AUTO and self.is_running:
-            self.display.text("Auto: Step {}/21".format(self.auto_step), 0, 40, 1)
+            self.display.text("Auto: Step {}/23".format(self.auto_step), 0, 40, 1)
 
         # Limits status
         z_status = "T" if not self.z_top.value() else "-"
@@ -230,14 +231,27 @@ class PartsWasher:
         # Home Z-axis first (move up)
         self.show_homing("Z-Axis UP")
         if not self.home_z():
-            self.show_error("Z-axis home failed")
-            return False
+            print("Z-axis home failed - entering sim mode")
+            self.z_motor.set_position(0)
+            self.rot_motor.set_position(0)
+            self.rot_motor.current_station = 0
+            self.is_homed = True
+            self.current_station = config.STATION_WASH
+            self.settings.set('sim_mode', True)
+            self.beep(2)
+            return True
 
         # Home rotation
         self.show_homing("Rotation")
         if not self.home_rotation():
-            self.show_error("Rotation home failed")
-            return False
+            print("Rotation home failed - entering sim mode")
+            self.rot_motor.set_position(0)
+            self.rot_motor.current_station = 0
+            self.is_homed = True
+            self.current_station = config.STATION_WASH
+            self.settings.set('sim_mode', True)
+            self.beep(2)
+            return True
 
         self.is_homed = True
         self.current_station = config.STATION_WASH
@@ -260,13 +274,19 @@ class PartsWasher:
     def lower_head(self):
         """Lower head into current station."""
         print("Lowering head...")
-        self.z_motor.set_speed_rpm(60)  # Slow for safety
+        self.z_motor.set_speed_rpm(300)
         self.z_motor.move_to_mm(self.settings.get('z_max_travel'))
 
+    def raise_to_spin(self):
+        """Raise head to spin position (above fluid, still in jar)."""
+        print("Raising to spin position...")
+        self.z_motor.set_speed_rpm(300)
+        self.z_motor.move_to_mm(self.settings.get('z_pos_spin'))
+
     def raise_head(self):
-        """Raise head out of station."""
+        """Raise head to home (top, clears dividers)."""
         print("Raising head...")
-        self.z_motor.set_speed_rpm(60)
+        self.z_motor.set_speed_rpm(300)
         self.z_motor.move_to_mm(0)
 
     def go_to_station(self, station):
@@ -330,10 +350,10 @@ class PartsWasher:
     def get_mode_duration_ms(self):
         """Get target duration in ms for the current mode/station."""
         if self.current_mode == config.MODE_JITTER:
-            return self.settings.get_timing_ms('jitter_duration')
+            return self.settings.get_timing_ms('wash_duration') // 2
         elif self.current_mode == config.MODE_CLEAN:
             if self.current_station == config.STATION_WASH:
-                return self.settings.get_timing_ms('wash_duration')
+                return self.settings.get_timing_ms('wash_duration') // 2
             elif self.current_station == config.STATION_RINSE2:
                 return self.settings.get_timing_ms('rinse2_duration')
             else:
@@ -363,39 +383,40 @@ class PartsWasher:
     async def run_auto_cycle(self):
         """Run full automatic wash cycle."""
         print("Starting AUTO cycle")
+        self.auto_running = True
         self.auto_step = 0
 
         steps = [
-            # Step 0-3: Wash station
-            (self.go_to_station, config.STATION_WASH),
-            (self.lower_head, None),
-            (self.start_jitter, None),
-            (self.start_clean, None),
-            (self.raise_head, None),
-            (self.start_spin, None),
+            # Wash station (steps 0-6)
+            (self.lower_head, None),                      # 0  submerge
+            (self.start_jitter, None),                    # 1  jitter wash
+            (self.start_clean, None),                     # 2  clean wash
+            (self.raise_to_spin, None),                   # 3  above fluid
+            (self.start_spin, None),                      # 4  spin dry
+            (self.raise_head, None),                      # 5  clear dividers
+            (self.go_to_station, config.STATION_RINSE1),  # 6  rotate to rinse1
 
-            # Step 6-9: Rinse 1
-            (self.go_to_station, config.STATION_RINSE1),
-            (self.lower_head, None),
-            (self.start_clean, None),
-            (self.raise_head, None),
-            (self.start_spin, None),
+            # Rinse 1 (steps 7-12)
+            (self.lower_head, None),                      # 7  submerge
+            (self.start_clean, None),                     # 8  clean rinse
+            (self.raise_to_spin, None),                   # 9  above fluid
+            (self.start_spin, None),                      # 10 spin dry
+            (self.raise_head, None),                      # 11 clear dividers
+            (self.go_to_station, config.STATION_RINSE2),  # 12 rotate to rinse2
 
-            # Step 11-14: Rinse 2
-            (self.go_to_station, config.STATION_RINSE2),
-            (self.lower_head, None),
-            (self.start_clean, None),
-            (self.raise_head, None),
-            (self.start_spin, None),
+            # Rinse 2 (steps 13-18)
+            (self.lower_head, None),                      # 13 submerge
+            (self.start_clean, None),                     # 14 clean rinse
+            (self.raise_to_spin, None),                   # 15 above fluid
+            (self.start_spin, None),                      # 16 spin dry
+            (self.raise_head, None),                      # 17 clear dividers
+            (self.go_to_station, config.STATION_HEATER),  # 18 rotate to heater
 
-            # Step 16-19: Heat dry
-            (self.go_to_station, config.STATION_HEATER),
-            (self.lower_head, None),
-            (self.start_heat, None),
-            (self.raise_head, None),
-
-            # Step 20: Return home
-            (self.go_to_station, config.STATION_WASH),
+            # Heat dry (steps 19-22)
+            (self.lower_head, None),                      # 19 lower into heater
+            (self.start_heat, None),                      # 20 heat dry
+            (self.raise_head, None),                      # 21 clear dividers
+            (self.go_to_station, config.STATION_WASH),    # 22 return home
         ]
 
         for i, (func, arg) in enumerate(steps):
@@ -409,7 +430,7 @@ class PartsWasher:
                 func()
 
             # Wait for completion
-            if func in (self.lower_head, self.raise_head):
+            if func in (self.lower_head, self.raise_head, self.raise_to_spin):
                 while self.z_motor.is_moving():
                     self.z_motor.update()
                     await asyncio.sleep_ms(1)
@@ -420,20 +441,32 @@ class PartsWasher:
                     await asyncio.sleep_ms(1)
 
             elif func in (self.start_jitter, self.start_clean, self.start_spin, self.start_heat):
+                # Set current_mode so get_mode_duration_ms() returns correct duration
+                mode_map = {
+                    self.start_jitter: config.MODE_JITTER,
+                    self.start_clean: config.MODE_CLEAN,
+                    self.start_spin: config.MODE_SPIN_DRY,
+                    self.start_heat: config.MODE_HEAT,
+                }
+                self.current_mode = mode_map[func]
                 while not self.check_mode_complete():
                     self.agit_motor.update()
                     self.show_status()
                     await asyncio.sleep_ms(10)
-
                     # Check for abort
                     if not self.btn_start.value():
                         print("Auto cycle aborted")
                         self.stop_all()
+                        self.auto_running = False
+                        self.current_mode = config.MODE_AUTO
                         return
+                self.current_mode = config.MODE_AUTO
 
         print("AUTO cycle complete!")
         self.stop_all()
+        self.auto_running = False
         self.auto_step = 0
+        self.current_mode = config.MODE_AUTO
         self.beep(4)
 
     # ============== BUTTON HANDLING ==============
@@ -482,6 +515,9 @@ class PartsWasher:
     def start_current_mode(self):
         """Start the currently selected mode."""
         if self.current_mode == config.MODE_AUTO:
+            if self.auto_running:
+                print("Auto cycle already running")
+                return
             asyncio.create_task(self.run_auto_cycle())
         elif self.current_mode == config.MODE_JITTER:
             self.start_jitter()
@@ -521,6 +557,9 @@ class PartsWasher:
         """Start the current mode (for web API)."""
         if not self.is_homed:
             print("Cannot start - not homed")
+            return False
+        if self.auto_running:
+            print("Auto cycle already running")
             return False
         self.start_current_mode()
         return True
@@ -589,8 +628,8 @@ class PartsWasher:
             self.rot_motor.update()
             self.agit_motor.update()
 
-            # Check mode completion
-            if self.is_running and self.current_mode != config.MODE_AUTO:
+            # Check mode completion (skip during auto cycle - it manages its own)
+            if self.is_running and not self.auto_running:
                 self.check_mode_complete()
 
             # Update display

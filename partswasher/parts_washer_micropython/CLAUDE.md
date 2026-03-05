@@ -74,17 +74,26 @@ mpremote connect /dev/ttyACM0 run main.py
 ## Modes
 | # | Name | Description |
 |---|------|-------------|
-| 0 | JITTER | Rapid oscillation (default 100 deg, 6 osc/sec, 3 min) |
+| 0 | JITTER | Rapid oscillation (default 100 deg, 6 osc/sec) |
 | 1 | CLEAN | Continuous rotation (default 850 RPM), reverses every 60 revs |
 | 2 | SPIN | Spin dry (default 950 RPM, 1 min) |
 | 3 | HEAT | Heater ON + slow rotation (default 250 RPM, 20 min) |
-| 4 | AUTO | Full 21-step cycle through all stations |
+| 4 | AUTO | Full 23-step cycle through all stations |
 | 5 | Z-AXIS | Manual Z toggle (up/down) |
 | 6 | ROTATE | Manual advance to next station |
 
-## Auto Cycle Sequence (21 steps)
-1. Go to WASH -> Lower -> Jitter -> Clean -> Raise -> Spin
-2. Go to RINSE1 -> Lower -> Clean -> Raise -> Spin
-3. Go to RINSE2 -> Lower -> Clean -> Raise -> Spin
-4. Go to HEATER -> Lower -> Heat -> Raise
-5. Return to WASH
+## Auto Cycle Sequence (23 steps)
+1. WASH: Lower -> Jitter (wash_duration/2) -> Clean (wash_duration/2) -> Raise to spin -> Spin dry -> Raise head -> Rotate to RINSE1
+2. RINSE1: Lower -> Clean (rinse1_duration) -> Raise to spin -> Spin dry -> Raise head -> Rotate to RINSE2
+3. RINSE2: Lower -> Clean (rinse2_duration) -> Raise to spin -> Spin dry -> Raise head -> Rotate to HEATER
+4. HEATER: Lower -> Heat (heat_duration) -> Raise head -> Rotate to WASH
+
+## Z-Axis Positions
+- **Home (0mm)**: Top, clears station dividers for rotation
+- **Spin (`z_pos_spin`)**: Above fluid level for centrifugal drying (default 40mm)
+- **Wash (`z_max_travel`)**: Bottom, fully submerged (default 100mm)
+
+## Auto Cycle Guards
+- `auto_running` flag prevents main loop from interfering with auto cycle's mode completion checks
+- Double-start protection: `start_current_mode()` and `start_cycle()` reject if `auto_running` is already True
+- Homing auto-fallback: if physical homing fails, enters sim mode automatically

@@ -28,9 +28,10 @@ class Settings:
         "jitter_osc": 6.0,
         "jitter_degrees": 100,
 
-        # Z-axis
+        # Z-axis positions (mm from home/top)
         "z_speed_mm_s": 10.0,
         "z_max_travel": 100.0,
+        "z_pos_spin": 40.0,  # Above fluid level for spin dry
 
         # Auto cycle options
         "auto_wash_enabled": True,
