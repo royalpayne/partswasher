@@ -3,38 +3,40 @@ Parts Washer v2.0 - Configuration
 ESP32-S3 Pin Definitions and Settings
 """
 
-# ============== PIN DEFINITIONS (ESP32-S3) ==============
+# ============== PIN DEFINITIONS (ESP32-S3-N16R8) ==============
+# GPIOs 26-37 reserved for flash/PSRAM, 19-20 for USB
+# Grouped for consolidated wiring harnesses
 
-# Agitation Motor (TMC2209 On-PCB)
+# I2C for OLED (2 pins)
+PIN_SDA = 1
+PIN_SCL = 2
+OLED_ADDR = 0x3C
+
+# Agitation Motor - TMC2209 (3 pins)
 PIN_AGIT_STEP = 4
 PIN_AGIT_DIR = 5
 PIN_AGIT_EN = 6
 
-# Z-Axis Motor (TMC2209 On-PCB)
-PIN_Z_STEP = 35
-PIN_Z_DIR = 36
-PIN_Z_EN = 37
+# Z-Axis Motor - TMC2209 (3 pins)
+PIN_Z_STEP = 7
+PIN_Z_DIR = 8
+PIN_Z_EN = 9
 
-# Rotation Motor (TMC2209 On-PCB)
-PIN_ROT_STEP = 38
-PIN_ROT_DIR = 39
-PIN_ROT_EN = 40
+# Rotation Motor - TMC2209 (3 pins)
+PIN_ROT_STEP = 10
+PIN_ROT_DIR = 11
+PIN_ROT_EN = 12
 
-# Limit Switches (active LOW - NC switches)
-PIN_Z_TOP = 41
-PIN_Z_BOTTOM = 42
-PIN_ROT_HOME = 2
+# Limit Switches - active LOW, NC (3 pins)
+PIN_Z_TOP = 13
+PIN_Z_BOTTOM = 14
+PIN_ROT_HOME = 15
 
-# Interface
-PIN_START = 7
-PIN_MODE = 15
-PIN_BUZZER = 16
-PIN_HEAT = 17
-
-# I2C for OLED
-PIN_SDA = 8
-PIN_SCL = 9
-OLED_ADDR = 0x3C
+# Interface (4 pins)
+PIN_START = 16
+PIN_MODE = 17
+PIN_BUZZER = 18
+PIN_HEAT = 21
 
 # ============== MOTOR CONFIGURATION ==============
 
@@ -42,13 +44,14 @@ OLED_ADDR = 0x3C
 AGIT_MICROSTEPS = 8
 AGIT_STEPS_PER_REV = 200 * AGIT_MICROSTEPS  # 1600 steps/rev
 
-# Z-Axis Motor (NEMA17 + TMC2209 16x microstepping)
+# Z-Axis Motor (NEMA17 + TMC2209 16x microstepping + cable winch)
 Z_MICROSTEPS = 16
 Z_STEPS_PER_REV = 200 * Z_MICROSTEPS  # 3200 steps/rev
-Z_LEAD_MM = 8.0  # 8mm lead screw pitch (T8)
-Z_STEPS_PER_MM = Z_STEPS_PER_REV / Z_LEAD_MM  # 400 steps/mm
-Z_MAX_TRAVEL_MM = 100.0  # Maximum Z travel in mm
-Z_SPEED_MM_S = 10.0  # Z movement speed mm/s
+Z_SPOOL_CORE_DIA = 20.0  # Cable spool core diameter (mm)
+Z_MM_PER_REV = 3.14159 * Z_SPOOL_CORE_DIA  # ~62.83mm per rev
+Z_STEPS_PER_MM = Z_STEPS_PER_REV / Z_MM_PER_REV  # ~50.93 steps/mm
+Z_MAX_TRAVEL_MM = 206.0  # Maximum Z travel in mm (298 - 92 from assembly)
+Z_SPEED_MM_S = 30.0  # Z movement speed mm/s
 
 # Rotation Motor (NEMA17 + TMC2209 16x microstepping)
 ROT_MICROSTEPS = 16

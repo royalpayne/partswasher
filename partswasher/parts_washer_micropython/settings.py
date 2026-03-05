@@ -52,6 +52,7 @@ class Settings:
         # System
         "device_name": "Parts Washer",
         "sound_enabled": True,
+        "sim_mode": False,
     }
 
     def __init__(self):

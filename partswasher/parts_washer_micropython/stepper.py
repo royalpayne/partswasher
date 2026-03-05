@@ -84,6 +84,7 @@ class Stepper:
     def update(self):
         """
         Update stepper - call this frequently in main loop.
+        Catches up on missed steps if called infrequently.
         Returns True if still moving, False if complete.
         """
         if not self.running:
@@ -93,10 +94,13 @@ class Stepper:
             self.running = False
             return False
 
-        # Check if it's time for next step
         now = time.ticks_us()
-        if time.ticks_diff(now, self.last_step_time) >= self.step_delay_us:
-            self._do_step()
+        elapsed = time.ticks_diff(now, self.last_step_time)
+        if elapsed >= self.step_delay_us:
+            # Calculate how many steps we should have taken
+            steps_due = min(elapsed // self.step_delay_us, abs(self.target - self.position))
+            for _ in range(steps_due):
+                self._do_step()
             self.last_step_time = now
 
         return True
@@ -301,6 +305,10 @@ class ZAxisMotor(Stepper, HomingMixin):
     def get_position_mm(self):
         """Get current position in millimeters."""
         return self.position / self.steps_per_mm
+
+    def get_target_mm(self):
+        """Get target position in millimeters."""
+        return self.target / self.steps_per_mm
 
 
 class RotationMotor(Stepper, HomingMixin):

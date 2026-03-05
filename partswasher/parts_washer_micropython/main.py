@@ -25,6 +25,9 @@ class PartsWasher:
     def __init__(self):
         print("Parts Washer v{} - Initializing...".format(self.VERSION))
 
+        # Settings reference (persistent, web-configurable)
+        self.settings = settings
+
         # Initialize motors
         self.agit_motor = AgitationMotor(
             config.PIN_AGIT_STEP,
@@ -211,8 +214,18 @@ class PartsWasher:
     # ============== HOMING METHODS ==============
 
     def home_all(self):
-        """Home all axes."""
+        """Home all axes. In sim_mode, skip physical homing."""
         print("Starting homing sequence...")
+
+        if self.settings.get('sim_mode'):
+            print("SIM MODE: Skipping physical homing")
+            self.z_motor.set_position(0)
+            self.rot_motor.set_position(0)
+            self.rot_motor.current_station = 0
+            self.is_homed = True
+            self.current_station = config.STATION_WASH
+            self.beep(2)
+            return True
 
         # Home Z-axis first (move up)
         self.show_homing("Z-Axis UP")
@@ -248,7 +261,7 @@ class PartsWasher:
         """Lower head into current station."""
         print("Lowering head...")
         self.z_motor.set_speed_rpm(60)  # Slow for safety
-        self.z_motor.move_to_mm(config.Z_MAX_TRAVEL_MM)
+        self.z_motor.move_to_mm(self.settings.get('z_max_travel'))
 
     def raise_head(self):
         """Raise head out of station."""
@@ -269,29 +282,35 @@ class PartsWasher:
         """Start jitter mode."""
         print("Starting JITTER mode")
         self.mode_start_time = time.ticks_ms()
-        self.agit_motor.start_jitter(config.JITTER_STEPS, config.JITTER_OSC)
+        jitter_deg = self.settings.get('jitter_degrees')
+        jitter_steps = int(jitter_deg / 360.0 * config.AGIT_STEPS_PER_REV)
+        self.agit_motor.start_jitter(jitter_steps, self.settings.get('jitter_osc'))
         self.is_running = True
 
     def start_clean(self):
         """Start clean mode."""
         print("Starting CLEAN mode")
         self.mode_start_time = time.ticks_ms()
-        self.agit_motor.start_continuous(config.CLEAN_RPM, reverse_every_revs=60)
+        self.agit_motor.start_continuous(self.settings.get('clean_rpm'), reverse_every_revs=60)
         self.is_running = True
 
     def start_spin(self):
         """Start spin dry mode."""
         print("Starting SPIN mode")
         self.mode_start_time = time.ticks_ms()
-        self.agit_motor.start_spin(config.SPIN_DRY_RPM)
+        self.agit_motor.start_spin(self.settings.get('spin_rpm'))
         self.is_running = True
 
     def start_heat(self):
-        """Start heat mode with slow rotation."""
+        """Start heat mode with slow rotation. Only allowed at HEATER station."""
+        if self.current_station != config.STATION_HEATER:
+            print("SAFETY: Heater blocked - not at HEATER station (at {})".format(
+                config.STATION_NAMES[self.current_station]))
+            return
         print("Starting HEAT mode")
         self.mode_start_time = time.ticks_ms()
         self.heater.value(0)  # Turn on heater (active LOW)
-        self.agit_motor.start_spin(config.HEAT_RPM)
+        self.agit_motor.start_spin(self.settings.get('heat_rpm'))
         self.is_running = True
 
     def stop_all(self):
@@ -308,25 +327,30 @@ class PartsWasher:
 
     # ============== MODE DURATION CHECK ==============
 
+    def get_mode_duration_ms(self):
+        """Get target duration in ms for the current mode/station."""
+        if self.current_mode == config.MODE_JITTER:
+            return self.settings.get_timing_ms('jitter_duration')
+        elif self.current_mode == config.MODE_CLEAN:
+            if self.current_station == config.STATION_WASH:
+                return self.settings.get_timing_ms('wash_duration')
+            elif self.current_station == config.STATION_RINSE2:
+                return self.settings.get_timing_ms('rinse2_duration')
+            else:
+                return self.settings.get_timing_ms('rinse1_duration')
+        elif self.current_mode == config.MODE_SPIN_DRY:
+            return self.settings.get_timing_ms('spin_duration')
+        elif self.current_mode == config.MODE_HEAT:
+            return self.settings.get_timing_ms('heat_duration')
+        return 0
+
     def check_mode_complete(self):
         """Check if current agitation mode is complete."""
         if not self.is_running:
             return False
 
         elapsed = time.ticks_ms() - self.mode_start_time
-
-        duration = 0
-        if self.current_mode == config.MODE_JITTER:
-            duration = config.JITTER_DURATION_MS
-        elif self.current_mode == config.MODE_CLEAN:
-            if self.current_station == config.STATION_WASH:
-                duration = config.WASH_DURATION_MS
-            else:
-                duration = config.RINSE_DURATION_MS
-        elif self.current_mode == config.MODE_SPIN_DRY:
-            duration = config.SPIN_DURATION_MS
-        elif self.current_mode == config.MODE_HEAT:
-            duration = config.HEAT_DURATION_MS
+        duration = self.get_mode_duration_ms()
 
         if elapsed >= duration:
             self.stop_all()
@@ -408,8 +432,9 @@ class PartsWasher:
                         return
 
         print("AUTO cycle complete!")
-        self.beep(4)
+        self.stop_all()
         self.auto_step = 0
+        self.beep(4)
 
     # ============== BUTTON HANDLING ==============
 
@@ -468,7 +493,7 @@ class PartsWasher:
             self.start_heat()
         elif self.current_mode == config.MODE_MANUAL_Z:
             # Toggle Z position
-            if self.z_motor.get_position_mm() < config.Z_MAX_TRAVEL_MM / 2:
+            if self.z_motor.get_position_mm() < self.settings.get('z_max_travel') / 2:
                 self.lower_head()
             else:
                 self.raise_head()
@@ -513,11 +538,21 @@ class PartsWasher:
         """Jog Z-axis by mm amount."""
         current = self.z_motor.get_position_mm()
         new_pos = max(0, min(config.Z_MAX_TRAVEL_MM, current + mm))
-        self.z_motor.set_speed_rpm(60)
+        self.z_motor.set_speed_rpm(300)
         self.z_motor.move_to_mm(new_pos)
 
+    def move_z_to(self, mm):
+        """Move Z-axis to absolute position in mm."""
+        pos = max(0, min(config.Z_MAX_TRAVEL_MM, mm))
+        self.z_motor.set_speed_rpm(300)
+        self.z_motor.move_to_mm(pos)
+
     def set_heater(self, state):
-        """Set heater state."""
+        """Set heater state. Only allowed at HEATER station."""
+        if state and self.current_station != config.STATION_HEATER:
+            print("SAFETY: Heater blocked - not at HEATER station (at {})".format(
+                config.STATION_NAMES[self.current_station]))
+            return
         self.heater.value(0 if state else 1)
         print(f"Heater {'ON' if state else 'OFF'}")
 
@@ -540,7 +575,10 @@ class PartsWasher:
             self.display.show()
             await asyncio.sleep(3)
 
-        self.show_home_prompt()
+        # Auto-home on boot
+        print("Auto-homing on boot...")
+        self.show_homing("All Axes")
+        self.home_all()
 
         while True:
             # Check buttons
