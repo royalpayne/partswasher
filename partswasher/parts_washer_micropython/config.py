@@ -12,7 +12,7 @@ PIN_SDA = 1
 PIN_SCL = 2
 OLED_ADDR = 0x3C
 
-# Agitation Motor - TMC2209 (3 pins)
+# Agitation Motor - TB6600 (3 pins)
 PIN_AGIT_STEP = 4
 PIN_AGIT_DIR = 5
 PIN_AGIT_EN = 6
@@ -33,16 +33,16 @@ PIN_Z_BOTTOM = 14
 PIN_ROT_HOME = 15
 
 # Interface (4 pins)
-PIN_START = 16
+PIN_START = 38
 PIN_MODE = 17
 PIN_BUZZER = 18
 PIN_HEAT = 21
 
 # ============== MOTOR CONFIGURATION ==============
 
-# Agitation Motor (NEMA23 + TMC2209 1/8 microstepping)
-AGIT_MICROSTEPS = 8
-AGIT_STEPS_PER_REV = 200 * AGIT_MICROSTEPS  # 1600 steps/rev
+# Agitation Motor (NEMA23 + TB6600 2/B half-stepping)
+AGIT_MICROSTEPS = 2
+AGIT_STEPS_PER_REV = 200 * AGIT_MICROSTEPS  # 400 steps/rev
 
 # Z-Axis Motor (NEMA17 + TMC2209 16x microstepping + cable winch)
 Z_MICROSTEPS = 16

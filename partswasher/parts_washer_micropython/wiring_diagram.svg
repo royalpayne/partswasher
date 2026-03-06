@@ -1,0 +1,310 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" font-family="Consolas, monospace">
+  <defs>
+    <style>
+      .title { font-size: 22px; font-weight: bold; fill: #1a1a2e; }
+      .subtitle { font-size: 13px; fill: #555; }
+      .pin-label { font-size: 11px; fill: #fff; font-weight: bold; }
+      .pin-num { font-size: 10px; fill: #ccc; }
+      .comp-title { font-size: 13px; font-weight: bold; fill: #1a1a2e; }
+      .comp-detail { font-size: 10px; fill: #444; }
+      .wire { stroke-width: 2; fill: none; }
+      .wire-i2c { stroke: #2196F3; }
+      .wire-agit { stroke: #E91E63; }
+      .wire-zaxis { stroke: #4CAF50; }
+      .wire-rot { stroke: #FF9800; }
+      .wire-limit { stroke: #9C27B0; }
+      .wire-iface { stroke: #607D8B; }
+      .wire-heat { stroke: #F44336; }
+      .wire-pwr { stroke: #333; stroke-dasharray: 6,3; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="900" fill="#f8f9fa" rx="8"/>
+
+  <!-- Title -->
+  <text x="600" y="35" text-anchor="middle" class="title">Parts Washer Wiring Diagram</text>
+  <text x="600" y="55" text-anchor="middle" class="subtitle">ESP32-S3-N16R8 | TB6600 + 2x TMC2209 | NEMA23 + 2x NEMA17</text>
+
+  <!-- ==================== ESP32-S3 MCU ==================== -->
+  <rect x="440" y="80" width="320" height="720" rx="10" fill="#1a1a2e" stroke="#0d0d1a" stroke-width="2"/>
+  <text x="600" y="108" text-anchor="middle" font-size="16" font-weight="bold" fill="#4fc3f7">ESP32-S3-N16R8</text>
+  <text x="600" y="124" text-anchor="middle" font-size="10" fill="#888">16MB Flash | 8MB PSRAM</text>
+
+  <!-- USB connector -->
+  <rect x="560" y="770" width="80" height="30" rx="4" fill="#333" stroke="#555" stroke-width="1"/>
+  <text x="600" y="790" text-anchor="middle" font-size="10" fill="#aaa">USB-C</text>
+  <text x="600" y="818" text-anchor="middle" class="comp-detail">GPIO 19/20</text>
+
+  <!-- Left side pins -->
+  <!-- I2C -->
+  <rect x="455" y="150" width="90" height="18" rx="3" fill="#2196F3"/>
+  <text x="500" y="163" text-anchor="middle" class="pin-label">GPIO 1</text>
+  <text x="555" y="163" font-size="9" fill="#bbdefb">SDA</text>
+
+  <rect x="455" y="175" width="90" height="18" rx="3" fill="#2196F3"/>
+  <text x="500" y="188" text-anchor="middle" class="pin-label">GPIO 2</text>
+  <text x="555" y="188" font-size="9" fill="#bbdefb">SCL</text>
+
+  <!-- Agitation -->
+  <rect x="455" y="220" width="90" height="18" rx="3" fill="#E91E63"/>
+  <text x="500" y="233" text-anchor="middle" class="pin-label">GPIO 4</text>
+  <text x="555" y="233" font-size="9" fill="#f8bbd0">STEP</text>
+
+  <rect x="455" y="245" width="90" height="18" rx="3" fill="#E91E63"/>
+  <text x="500" y="258" text-anchor="middle" class="pin-label">GPIO 5</text>
+  <text x="555" y="258" font-size="9" fill="#f8bbd0">DIR</text>
+
+  <rect x="455" y="270" width="90" height="18" rx="3" fill="#E91E63"/>
+  <text x="500" y="283" text-anchor="middle" class="pin-label">GPIO 6</text>
+  <text x="555" y="283" font-size="9" fill="#f8bbd0">EN</text>
+
+  <!-- Z-Axis -->
+  <rect x="455" y="315" width="90" height="18" rx="3" fill="#4CAF50"/>
+  <text x="500" y="328" text-anchor="middle" class="pin-label">GPIO 7</text>
+  <text x="555" y="328" font-size="9" fill="#c8e6c9">STEP</text>
+
+  <rect x="455" y="340" width="90" height="18" rx="3" fill="#4CAF50"/>
+  <text x="500" y="353" text-anchor="middle" class="pin-label">GPIO 8</text>
+  <text x="555" y="353" font-size="9" fill="#c8e6c9">DIR</text>
+
+  <rect x="455" y="365" width="90" height="18" rx="3" fill="#4CAF50"/>
+  <text x="500" y="378" text-anchor="middle" class="pin-label">GPIO 9</text>
+  <text x="555" y="378" font-size="9" fill="#c8e6c9">EN</text>
+
+  <!-- Rotation -->
+  <rect x="455" y="410" width="90" height="18" rx="3" fill="#FF9800"/>
+  <text x="500" y="423" text-anchor="middle" class="pin-label">GPIO 10</text>
+  <text x="555" y="423" font-size="9" fill="#ffe0b2">STEP</text>
+
+  <rect x="455" y="435" width="90" height="18" rx="3" fill="#FF9800"/>
+  <text x="500" y="448" text-anchor="middle" class="pin-label">GPIO 11</text>
+  <text x="555" y="448" font-size="9" fill="#ffe0b2">DIR</text>
+
+  <rect x="455" y="460" width="90" height="18" rx="3" fill="#FF9800"/>
+  <text x="500" y="473" text-anchor="middle" class="pin-label">GPIO 12</text>
+  <text x="555" y="473" font-size="9" fill="#ffe0b2">EN</text>
+
+  <!-- Right side pins -->
+  <!-- Limit Switches -->
+  <rect x="655" y="150" width="90" height="18" rx="3" fill="#9C27B0"/>
+  <text x="700" y="163" text-anchor="middle" class="pin-label">GPIO 13</text>
+  <text x="755" y="163" font-size="9" fill="#e1bee7">Z_TOP</text>
+
+  <rect x="655" y="175" width="90" height="18" rx="3" fill="#9C27B0"/>
+  <text x="700" y="188" text-anchor="middle" class="pin-label">GPIO 14</text>
+  <text x="755" y="188" font-size="9" fill="#e1bee7">Z_BOT</text>
+
+  <rect x="655" y="200" width="90" height="18" rx="3" fill="#9C27B0"/>
+  <text x="700" y="213" text-anchor="middle" class="pin-label">GPIO 15</text>
+  <text x="755" y="213" font-size="9" fill="#e1bee7">ROT</text>
+
+  <!-- Interface -->
+  <rect x="655" y="260" width="90" height="18" rx="3" fill="#607D8B"/>
+  <text x="700" y="273" text-anchor="middle" class="pin-label">GPIO 38</text>
+  <text x="755" y="273" font-size="9" fill="#cfd8dc">START</text>
+
+  <rect x="655" y="285" width="90" height="18" rx="3" fill="#607D8B"/>
+  <text x="700" y="298" text-anchor="middle" class="pin-label">GPIO 17</text>
+  <text x="755" y="298" font-size="9" fill="#cfd8dc">MODE</text>
+
+  <rect x="655" y="325" width="90" height="18" rx="3" fill="#795548"/>
+  <text x="700" y="338" text-anchor="middle" class="pin-label">GPIO 18</text>
+  <text x="755" y="338" font-size="9" fill="#d7ccc8">BUZZ</text>
+
+  <rect x="655" y="365" width="90" height="18" rx="3" fill="#F44336"/>
+  <text x="700" y="378" text-anchor="middle" class="pin-label">GPIO 21</text>
+  <text x="755" y="378" font-size="9" fill="#ffcdd2">HEAT</text>
+
+  <!-- ==================== OLED Display ==================== -->
+  <rect x="60" y="120" width="180" height="90" rx="8" fill="#fff" stroke="#2196F3" stroke-width="2"/>
+  <rect x="80" y="145" width="140" height="45" rx="4" fill="#111"/>
+  <text x="150" y="140" text-anchor="middle" class="comp-title">SSD1306 OLED</text>
+  <text x="150" y="172" text-anchor="middle" font-size="10" fill="#4fc3f7">128 x 64</text>
+  <text x="150" y="200" text-anchor="middle" class="comp-detail">I2C Addr: 0x3C</text>
+
+  <!-- OLED wires -->
+  <path d="M240,159 L455,159" class="wire wire-i2c"/>
+  <path d="M240,184 L455,184" class="wire wire-i2c"/>
+  <circle cx="240" cy="159" r="3" fill="#2196F3"/>
+  <circle cx="240" cy="184" r="3" fill="#2196F3"/>
+  <text x="310" y="153" font-size="9" fill="#2196F3">SDA</text>
+  <text x="310" y="178" font-size="9" fill="#2196F3">SCL</text>
+
+  <!-- ==================== TB6600 - Agitation ==================== -->
+  <rect x="60" y="225" width="180" height="120" rx="8" fill="#fff" stroke="#E91E63" stroke-width="2"/>
+  <text x="150" y="248" text-anchor="middle" class="comp-title">TB6600</text>
+  <text x="150" y="264" text-anchor="middle" font-size="10" fill="#E91E63">Agitation</text>
+  <text x="150" y="282" text-anchor="middle" class="comp-detail">2/B Half-Stepping</text>
+  <line x1="75" y1="296" x2="225" y2="296" stroke="#eee" stroke-width="1"/>
+  <text x="150" y="312" text-anchor="middle" font-size="12" font-weight="bold" fill="#333">NEMA23</text>
+  <text x="150" y="328" text-anchor="middle" class="comp-detail">400 steps/rev</text>
+
+  <!-- Agitation wires -->
+  <path d="M240,229 L455,229" class="wire wire-agit"/>
+  <path d="M240,254 L455,254" class="wire wire-agit"/>
+  <path d="M240,279 L455,279" class="wire wire-agit"/>
+  <circle cx="240" cy="229" r="3" fill="#E91E63"/>
+  <circle cx="240" cy="254" r="3" fill="#E91E63"/>
+  <circle cx="240" cy="279" r="3" fill="#E91E63"/>
+
+  <!-- ==================== TMC2209 #2 - Z-Axis ==================== -->
+  <rect x="60" y="370" width="180" height="120" rx="8" fill="#fff" stroke="#4CAF50" stroke-width="2"/>
+  <text x="150" y="393" text-anchor="middle" class="comp-title">TMC2209 #2</text>
+  <text x="150" y="409" text-anchor="middle" font-size="10" fill="#4CAF50">Z-Axis</text>
+  <text x="150" y="427" text-anchor="middle" class="comp-detail">1/16 Microstepping</text>
+  <line x1="75" y1="441" x2="225" y2="441" stroke="#eee" stroke-width="1"/>
+  <text x="150" y="457" text-anchor="middle" font-size="12" font-weight="bold" fill="#333">NEMA17</text>
+  <text x="150" y="473" text-anchor="middle" class="comp-detail">Cable Winch | 206mm travel</text>
+
+  <!-- Z-Axis wires -->
+  <path d="M240,324 L420,324 L420,324 L455,324" class="wire wire-zaxis"/>
+  <path d="M240,349 L410,349 L410,349 L455,349" class="wire wire-zaxis"/>
+  <path d="M240,374 L400,374 L400,374 L455,374" class="wire wire-zaxis"/>
+  <circle cx="240" cy="324" r="3" fill="#4CAF50"/>
+  <circle cx="240" cy="349" r="3" fill="#4CAF50"/>
+  <circle cx="240" cy="374" r="3" fill="#4CAF50"/>
+
+  <!-- ==================== TMC2209 #3 - Rotation ==================== -->
+  <rect x="60" y="515" width="180" height="120" rx="8" fill="#fff" stroke="#FF9800" stroke-width="2"/>
+  <text x="150" y="538" text-anchor="middle" class="comp-title">TMC2209 #3</text>
+  <text x="150" y="554" text-anchor="middle" font-size="10" fill="#FF9800">Rotation</text>
+  <text x="150" y="572" text-anchor="middle" class="comp-detail">1/16 Microstepping</text>
+  <line x1="75" y1="586" x2="225" y2="586" stroke="#eee" stroke-width="1"/>
+  <text x="150" y="602" text-anchor="middle" font-size="12" font-weight="bold" fill="#333">NEMA17</text>
+  <text x="150" y="618" text-anchor="middle" class="comp-detail">3:1 Belt | 4 Stations</text>
+
+  <!-- Rotation wires -->
+  <path d="M240,419 L390,419 L390,419 L455,419" class="wire wire-rot"/>
+  <path d="M240,444 L380,444 L380,444 L455,444" class="wire wire-rot"/>
+  <path d="M240,469 L370,469 L370,469 L455,469" class="wire wire-rot"/>
+  <circle cx="240" cy="419" r="3" fill="#FF9800"/>
+  <circle cx="240" cy="444" r="3" fill="#FF9800"/>
+  <circle cx="240" cy="469" r="3" fill="#FF9800"/>
+
+  <!-- ==================== Limit Switches ==================== -->
+  <rect x="960" y="120" width="180" height="130" rx="8" fill="#fff" stroke="#9C27B0" stroke-width="2"/>
+  <text x="1050" y="143" text-anchor="middle" class="comp-title">Limit Switches</text>
+  <text x="1050" y="159" text-anchor="middle" class="comp-detail">NC (Normally Closed)</text>
+  <text x="1050" y="175" text-anchor="middle" class="comp-detail">Active LOW, Internal Pull-up</text>
+
+  <!-- Switch symbols -->
+  <text x="980" y="200" font-size="11" fill="#9C27B0">Z Top</text>
+  <line x1="1030" y1="195" x2="1060" y2="195" stroke="#9C27B0" stroke-width="2"/>
+  <line x1="1060" y1="195" x2="1075" y2="185" stroke="#9C27B0" stroke-width="2"/>
+  <line x1="1080" y1="195" x2="1110" y2="195" stroke="#9C27B0" stroke-width="2"/>
+  <text x="1120" y="200" font-size="9" fill="#666">GND</text>
+
+  <text x="980" y="220" font-size="11" fill="#9C27B0">Z Bot</text>
+  <line x1="1030" y1="215" x2="1060" y2="215" stroke="#9C27B0" stroke-width="2"/>
+  <line x1="1060" y1="215" x2="1075" y2="205" stroke="#9C27B0" stroke-width="2"/>
+  <line x1="1080" y1="215" x2="1110" y2="215" stroke="#9C27B0" stroke-width="2"/>
+  <text x="1120" y="220" font-size="9" fill="#666">GND</text>
+
+  <text x="980" y="240" font-size="11" fill="#9C27B0">Rot Home</text>
+  <line x1="1050" y1="235" x2="1060" y2="235" stroke="#9C27B0" stroke-width="2"/>
+  <line x1="1060" y1="235" x2="1075" y2="225" stroke="#9C27B0" stroke-width="2"/>
+  <line x1="1080" y1="235" x2="1110" y2="235" stroke="#9C27B0" stroke-width="2"/>
+  <text x="1120" y="240" font-size="9" fill="#666">GND</text>
+
+  <!-- Limit switch wires -->
+  <path d="M745,159 L960,159" class="wire wire-limit"/>
+  <path d="M745,184 L960,184" class="wire wire-limit"/>
+  <path d="M745,209 L960,209" class="wire wire-limit"/>
+  <circle cx="745" cy="159" r="3" fill="#9C27B0"/>
+  <circle cx="745" cy="184" r="3" fill="#9C27B0"/>
+  <circle cx="745" cy="209" r="3" fill="#9C27B0"/>
+
+  <!-- ==================== Buttons ==================== -->
+  <rect x="960" y="270" width="180" height="100" rx="8" fill="#fff" stroke="#607D8B" stroke-width="2"/>
+  <text x="1050" y="293" text-anchor="middle" class="comp-title">Buttons</text>
+  <text x="1050" y="309" text-anchor="middle" class="comp-detail">Active LOW, Internal Pull-up</text>
+
+  <!-- Button symbols -->
+  <rect x="990" y="320" width="40" height="20" rx="4" fill="#607D8B"/>
+  <text x="1010" y="335" text-anchor="middle" font-size="10" fill="#fff">START</text>
+  <text x="1045" y="335" font-size="9" fill="#666">-- GND</text>
+
+  <rect x="990" y="348" width="40" height="20" rx="4" fill="#607D8B"/>
+  <text x="1010" y="363" text-anchor="middle" font-size="10" fill="#fff">MODE</text>
+  <text x="1045" y="363" font-size="9" fill="#666">-- GND</text>
+
+  <!-- Button wires -->
+  <path d="M745,269 L960,330" class="wire wire-iface"/>
+  <path d="M745,294 L960,358" class="wire wire-iface"/>
+  <circle cx="745" cy="269" r="3" fill="#607D8B"/>
+  <circle cx="745" cy="294" r="3" fill="#607D8B"/>
+
+  <!-- ==================== Buzzer ==================== -->
+  <rect x="960" y="395" width="180" height="70" rx="8" fill="#fff" stroke="#795548" stroke-width="2"/>
+  <text x="1050" y="418" text-anchor="middle" class="comp-title">Piezo Buzzer</text>
+  <text x="1050" y="438" text-anchor="middle" class="comp-detail">PWM Output</text>
+  <text x="1050" y="454" text-anchor="middle" class="comp-detail">(+) Signal  (-) GND</text>
+
+  <!-- Buzzer wire -->
+  <path d="M745,334 L960,430" class="wire" stroke="#795548"/>
+  <circle cx="745" cy="334" r="3" fill="#795548"/>
+
+  <!-- ==================== Heater Relay ==================== -->
+  <rect x="960" y="490" width="180" height="100" rx="8" fill="#fff" stroke="#F44336" stroke-width="2"/>
+  <text x="1050" y="513" text-anchor="middle" class="comp-title">Heater Relay</text>
+  <text x="1050" y="530" text-anchor="middle" font-size="10" fill="#F44336">Active LOW</text>
+  <text x="1050" y="548" text-anchor="middle" class="comp-detail">IN -- GPIO 21</text>
+  <text x="1050" y="564" text-anchor="middle" class="comp-detail">VCC -- 3.3V | GND -- GND</text>
+  <text x="1050" y="580" text-anchor="middle" class="comp-detail">NO/COM -- Heater Element</text>
+
+  <!-- Heater wire -->
+  <path d="M745,374 L960,540" class="wire wire-heat"/>
+  <circle cx="745" cy="374" r="3" fill="#F44336"/>
+
+  <!-- ==================== Power Supply ==================== -->
+  <rect x="60" y="680" width="340" height="100" rx="8" fill="#fff" stroke="#333" stroke-width="2"/>
+  <text x="230" y="703" text-anchor="middle" class="comp-title">Power Distribution</text>
+  <line x1="75" y1="712" x2="385" y2="712" stroke="#eee" stroke-width="1"/>
+  <text x="80" y="732" font-size="11" fill="#c62828" font-weight="bold">24V PSU</text>
+  <text x="80" y="748" class="comp-detail">VM on TB6600 + 2x TMC2209 drivers</text>
+  <text x="80" y="768" font-size="11" fill="#1565C0" font-weight="bold">3.3V</text>
+  <text x="140" y="768" class="comp-detail">OLED, Relay VCC (from ESP32 regulator)</text>
+
+  <!-- ==================== Legend ==================== -->
+  <rect x="830" y="650" width="310" height="180" rx="8" fill="#fff" stroke="#ddd" stroke-width="1"/>
+  <text x="985" y="675" text-anchor="middle" class="comp-title">Legend</text>
+
+  <line x1="850" y1="695" x2="890" y2="695" class="wire wire-i2c"/>
+  <text x="900" y="699" font-size="10" fill="#444">I2C (OLED)</text>
+
+  <line x1="850" y1="715" x2="890" y2="715" class="wire wire-agit"/>
+  <text x="900" y="719" font-size="10" fill="#444">Agitation Motor</text>
+
+  <line x1="850" y1="735" x2="890" y2="735" class="wire wire-zaxis"/>
+  <text x="900" y="739" font-size="10" fill="#444">Z-Axis Motor</text>
+
+  <line x1="850" y1="755" x2="890" y2="755" class="wire wire-rot"/>
+  <text x="900" y="759" font-size="10" fill="#444">Rotation Motor</text>
+
+  <line x1="1000" y1="695" x2="1040" y2="695" class="wire wire-limit"/>
+  <text x="1050" y="699" font-size="10" fill="#444">Limit Switches</text>
+
+  <line x1="1000" y1="715" x2="1040" y2="715" class="wire wire-iface"/>
+  <text x="1050" y="719" font-size="10" fill="#444">Buttons</text>
+
+  <line x1="1000" y1="735" x2="1040" y2="735" class="wire wire-heat"/>
+  <text x="1050" y="739" font-size="10" fill="#444">Heater Relay</text>
+
+  <line x1="1000" y1="755" x2="1040" y2="755" class="wire wire-pwr"/>
+  <text x="1050" y="759" font-size="10" fill="#444">Power</text>
+
+  <!-- Free pins note -->
+  <rect x="460" y="520" width="280" height="80" rx="6" fill="#263238"/>
+  <text x="600" y="542" text-anchor="middle" font-size="11" fill="#80cbc4" font-weight="bold">Free GPIOs (9 available)</text>
+  <text x="600" y="562" text-anchor="middle" font-size="12" fill="#b2dfdb">22  23  24  25</text>
+  <text x="600" y="582" text-anchor="middle" font-size="12" fill="#b2dfdb">40  41  42  47  48</text>
+
+  <!-- Unavailable pins note -->
+  <rect x="460" y="615" width="280" height="50" rx="6" fill="#3e2723"/>
+  <text x="600" y="637" text-anchor="middle" font-size="11" fill="#ffab91" font-weight="bold">Unavailable GPIOs</text>
+  <text x="600" y="653" text-anchor="middle" font-size="11" fill="#ffccbc">0  3  16  19  20  26-37  39  43-46</text>
+
+  <!-- Pin count -->
+  <text x="600" y="690" text-anchor="middle" font-size="10" fill="#888">18 GPIOs used | 9 free | 24 reserved/unavailable</text>
+</svg>

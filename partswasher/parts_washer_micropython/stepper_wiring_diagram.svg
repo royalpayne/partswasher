@@ -1,0 +1,428 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1750" font-family="Consolas, monospace">
+  <defs>
+    <style>
+      .title { font-size: 24px; font-weight: bold; fill: #1a1a2e; }
+      .subtitle { font-size: 14px; fill: #555; }
+      .section-title { font-size: 18px; font-weight: bold; }
+      .comp-title { font-size: 14px; font-weight: bold; fill: #1a1a2e; }
+      .comp-detail { font-size: 11px; fill: #444; }
+      .pin-text { font-size: 11px; fill: #333; font-weight: bold; }
+      .pin-desc { font-size: 10px; fill: #666; }
+      .wire-signal { stroke-width: 2; fill: none; }
+      .wire-power { stroke-width: 2.5; fill: none; }
+      .wire-gnd { stroke-width: 2.5; fill: none; stroke: #333; }
+      .wire-motor { stroke-width: 2.5; fill: none; }
+      .note { font-size: 10px; fill: #666; font-style: italic; }
+    </style>
+    <!-- Arrow marker -->
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#666"/>
+    </marker>
+    <marker id="arrow-red" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#c62828"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1400" height="1750" fill="#f5f5f5" rx="8"/>
+
+  <!-- Title -->
+  <text x="700" y="40" text-anchor="middle" class="title">Stepper Motor Wiring - Parts Washer</text>
+  <text x="700" y="62" text-anchor="middle" class="subtitle">TB6600 + 2x TMC2209 Stepper Drivers | ESP32-S3-N16R8 | 24V Power</text>
+
+  <!-- ================================================================ -->
+  <!-- SECTION 1: AGITATION MOTOR                                       -->
+  <!-- ================================================================ -->
+  <text x="700" y="100" text-anchor="middle" class="section-title" fill="#E91E63">Motor 1: Agitation (NEMA23 + TB6600 @ 2/B Half-Stepping)</text>
+
+  <!-- ESP32 Block -->
+  <rect x="50" y="120" width="200" height="200" rx="8" fill="#1a1a2e" stroke="#0d0d1a" stroke-width="2"/>
+  <text x="150" y="145" text-anchor="middle" font-size="14" font-weight="bold" fill="#4fc3f7">ESP32-S3</text>
+
+  <rect x="65" y="165" width="170" height="25" rx="4" fill="#E91E63"/>
+  <text x="150" y="182" text-anchor="middle" font-size="11" fill="#fff" font-weight="bold">GPIO 4 -- AGIT_STEP</text>
+
+  <rect x="65" y="200" width="170" height="25" rx="4" fill="#E91E63"/>
+  <text x="150" y="217" text-anchor="middle" font-size="11" fill="#fff" font-weight="bold">GPIO 5 -- AGIT_DIR</text>
+
+  <rect x="65" y="235" width="170" height="25" rx="4" fill="#E91E63"/>
+  <text x="150" y="252" text-anchor="middle" font-size="11" fill="#fff" font-weight="bold">GPIO 6 -- AGIT_EN</text>
+
+  <rect x="65" y="275" width="170" height="25" rx="4" fill="#263238"/>
+  <text x="150" y="292" text-anchor="middle" font-size="11" fill="#ccc">GND</text>
+
+  <!-- TB6600 -->
+  <rect x="420" y="120" width="320" height="330" rx="8" fill="#fff" stroke="#E91E63" stroke-width="2"/>
+  <text x="580" y="145" text-anchor="middle" class="comp-title">TB6600 Driver</text>
+  <text x="580" y="162" text-anchor="middle" class="comp-detail">Agitation | 2/B Half-Step (400 steps/rev)</text>
+
+  <!-- TB6600 Left pins (Signal side) -->
+  <text x="435" y="195" class="pin-text">ENA+</text>
+  <text x="435" y="213" class="pin-desc">Enable+ (to GPIO 6)</text>
+
+  <text x="435" y="240" class="pin-text">ENA-</text>
+  <text x="435" y="258" class="pin-desc">Enable- (to GND)</text>
+
+  <text x="435" y="285" class="pin-text">PUL+</text>
+  <text x="435" y="303" class="pin-desc">Pulse/Step+ (to GPIO 4)</text>
+
+  <text x="435" y="330" class="pin-text">PUL-</text>
+  <text x="435" y="348" class="pin-desc">Pulse- (to GND)</text>
+
+  <text x="435" y="375" class="pin-text">DIR+</text>
+  <text x="435" y="393" class="pin-desc">Direction+ (to GPIO 5)</text>
+
+  <text x="435" y="410" class="pin-text">DIR-</text>
+  <text x="435" y="428" class="pin-desc">Direction- (to GND)</text>
+
+  <!-- TB6600 Right pins (Motor/Power side) -->
+  <text x="640" y="195" class="pin-text">VCC</text>
+  <text x="640" y="213" class="pin-desc">Motor power (9-42V DC)</text>
+
+  <text x="640" y="240" class="pin-text">GND</text>
+  <text x="640" y="258" class="pin-desc">Power ground</text>
+
+  <text x="640" y="285" class="pin-text">A+</text>
+  <text x="640" y="303" class="pin-desc">Coil A output +</text>
+
+  <text x="640" y="330" class="pin-text">A-</text>
+  <text x="640" y="348" class="pin-desc">Coil A output -</text>
+
+  <text x="640" y="375" class="pin-text">B+</text>
+  <text x="640" y="393" class="pin-desc">Coil B output +</text>
+
+  <text x="640" y="420" class="pin-text">B-</text>
+  <text x="640" y="438" class="pin-desc">Coil B output -</text>
+
+  <!-- Microstepping config -->
+  <rect x="440" y="415" width="190" height="28" rx="4" fill="#fce4ec"/>
+  <text x="535" y="434" text-anchor="middle" font-size="10" fill="#c62828" font-weight="bold">DIP: 2/B Half-Step (400 s/r)</text>
+
+  <!-- NEMA23 Motor -->
+  <rect x="920" y="120" width="280" height="330" rx="8" fill="#fff" stroke="#E91E63" stroke-width="2"/>
+  <text x="1060" y="145" text-anchor="middle" class="comp-title">NEMA23 Stepper Motor</text>
+  <text x="1060" y="162" text-anchor="middle" class="comp-detail">Agitation / Basket Drive</text>
+
+  <!-- Motor diagram -->
+  <circle cx="1060" cy="250" r="60" fill="none" stroke="#E91E63" stroke-width="2"/>
+  <circle cx="1060" cy="250" r="8" fill="#E91E63"/>
+  <!-- Coil A -->
+  <line x1="1000" y1="250" x2="1030" y2="250" stroke="#c62828" stroke-width="3"/>
+  <line x1="1090" y1="250" x2="1120" y2="250" stroke="#c62828" stroke-width="3"/>
+  <text x="960" y="254" font-size="10" fill="#c62828" font-weight="bold">A</text>
+  <text x="1125" y="254" font-size="10" fill="#c62828" font-weight="bold">A</text>
+  <!-- Coil B -->
+  <line x1="1060" y1="190" x2="1060" y2="220" stroke="#1565C0" stroke-width="3"/>
+  <line x1="1060" y1="280" x2="1060" y2="310" stroke="#1565C0" stroke-width="3"/>
+  <text x="1065" y="185" font-size="10" fill="#1565C0" font-weight="bold">B</text>
+  <text x="1065" y="325" font-size="10" fill="#1565C0" font-weight="bold">B</text>
+
+  <!-- Motor wire labels -->
+  <rect x="935" y="350" width="250" height="90" rx="4" fill="#fafafa" stroke="#ddd"/>
+  <text x="940" y="370" font-size="11" fill="#333" font-weight="bold">4-Wire Bipolar Connection:</text>
+  <rect x="945" y="378" width="12" height="12" rx="2" fill="#c62828"/>
+  <text x="965" y="389" font-size="11" fill="#444">Coil A: Wire 1 (A1) + Wire 2 (A2)</text>
+  <rect x="945" y="398" width="12" height="12" rx="2" fill="#1565C0"/>
+  <text x="965" y="409" font-size="11" fill="#444">Coil B: Wire 3 (B1) + Wire 4 (B2)</text>
+  <text x="945" y="430" class="note">Check motor datasheet for wire color mapping</text>
+
+  <!-- Wires: ESP32 to TB6600 -->
+  <line x1="250" y1="177" x2="420" y2="292" class="wire-signal" stroke="#E91E63"/>
+  <text x="320" y="228" font-size="9" fill="#E91E63">PUL+</text>
+  <line x1="250" y1="212" x2="420" y2="382" class="wire-signal" stroke="#E91E63"/>
+  <text x="320" y="292" font-size="9" fill="#E91E63">DIR+</text>
+  <line x1="250" y1="247" x2="420" y2="192" class="wire-signal" stroke="#E91E63"/>
+  <text x="320" y="224" font-size="9" fill="#E91E63">ENA+</text>
+  <line x1="250" y1="287" x2="420" y2="255" class="wire-gnd"/>
+  <text x="320" y="268" font-size="9" fill="#333">GND (ENA-/PUL-/DIR-)</text>
+
+  <!-- Wires: TB6600 to Motor -->
+  <line x1="740" y1="282" x2="920" y2="240" class="wire-motor" stroke="#c62828"/>
+  <text x="830" y="254" font-size="9" fill="#c62828">A+</text>
+  <line x1="740" y1="327" x2="920" y2="260" class="wire-motor" stroke="#c62828"/>
+  <text x="830" y="290" font-size="9" fill="#c62828">A-</text>
+  <line x1="740" y1="372" x2="920" y2="280" class="wire-motor" stroke="#1565C0"/>
+  <text x="830" y="324" font-size="9" fill="#1565C0">B+</text>
+  <line x1="740" y1="417" x2="920" y2="300" class="wire-motor" stroke="#1565C0"/>
+  <text x="830" y="358" font-size="9" fill="#1565C0">B-</text>
+
+  <!-- ================================================================ -->
+  <!-- SECTION 2: Z-AXIS MOTOR                                          -->
+  <!-- ================================================================ -->
+  <line x1="50" y1="480" x2="1350" y2="480" stroke="#ddd" stroke-width="1"/>
+  <text x="700" y="520" text-anchor="middle" class="section-title" fill="#4CAF50">Motor 2: Z-Axis (NEMA17 + TMC2209 @ 1/16 Microstepping)</text>
+
+  <!-- ESP32 Block -->
+  <rect x="50" y="540" width="200" height="200" rx="8" fill="#1a1a2e" stroke="#0d0d1a" stroke-width="2"/>
+  <text x="150" y="565" text-anchor="middle" font-size="14" font-weight="bold" fill="#4fc3f7">ESP32-S3</text>
+
+  <rect x="65" y="585" width="170" height="25" rx="4" fill="#4CAF50"/>
+  <text x="150" y="602" text-anchor="middle" font-size="11" fill="#fff" font-weight="bold">GPIO 7 -- Z_STEP</text>
+
+  <rect x="65" y="620" width="170" height="25" rx="4" fill="#4CAF50"/>
+  <text x="150" y="637" text-anchor="middle" font-size="11" fill="#fff" font-weight="bold">GPIO 8 -- Z_DIR</text>
+
+  <rect x="65" y="655" width="170" height="25" rx="4" fill="#4CAF50"/>
+  <text x="150" y="672" text-anchor="middle" font-size="11" fill="#fff" font-weight="bold">GPIO 9 -- Z_EN</text>
+
+  <rect x="65" y="695" width="170" height="25" rx="4" fill="#263238"/>
+  <text x="150" y="712" text-anchor="middle" font-size="11" fill="#ccc">GND</text>
+
+  <!-- TMC2209 #2 -->
+  <rect x="420" y="540" width="320" height="330" rx="8" fill="#fff" stroke="#4CAF50" stroke-width="2"/>
+  <text x="580" y="565" text-anchor="middle" class="comp-title">TMC2209 Driver Board #2</text>
+  <text x="580" y="582" text-anchor="middle" class="comp-detail">Z-Axis | 1/16 Microstepping</text>
+
+  <text x="435" y="615" class="pin-text">EN</text>
+  <text x="435" y="633" class="pin-desc">Enable (active LOW)</text>
+
+  <text x="435" y="660" class="pin-text">STEP</text>
+  <text x="435" y="678" class="pin-desc">Step pulse input</text>
+
+  <text x="435" y="705" class="pin-text">DIR</text>
+  <text x="435" y="723" class="pin-desc">Direction input</text>
+
+  <text x="435" y="750" class="pin-text">GND</text>
+  <text x="435" y="768" class="pin-desc">Logic ground</text>
+
+  <text x="435" y="795" class="pin-text">VIO</text>
+  <text x="435" y="813" class="pin-desc">Logic voltage (3.3V)</text>
+
+  <text x="640" y="615" class="pin-text">VM</text>
+  <text x="640" y="633" class="pin-desc">Motor power (24V)</text>
+
+  <text x="640" y="660" class="pin-text">GND</text>
+  <text x="640" y="678" class="pin-desc">Power ground</text>
+
+  <text x="640" y="705" class="pin-text">OA1</text>
+  <text x="640" y="723" class="pin-desc">Coil A output 1</text>
+
+  <text x="640" y="750" class="pin-text">OA2</text>
+  <text x="640" y="768" class="pin-desc">Coil A output 2</text>
+
+  <text x="640" y="795" class="pin-text">OB1</text>
+  <text x="640" y="813" class="pin-desc">Coil B output 1</text>
+
+  <text x="640" y="840" class="pin-text">OB2</text>
+  <text x="640" y="858" class="pin-desc">Coil B output 2</text>
+
+  <rect x="440" y="835" width="170" height="28" rx="4" fill="#e8f5e9"/>
+  <text x="525" y="854" text-anchor="middle" font-size="10" fill="#2e7d32" font-weight="bold">MS1=VIO MS2=VIO (1/16)</text>
+
+  <!-- NEMA17 Motor -->
+  <rect x="920" y="540" width="280" height="330" rx="8" fill="#fff" stroke="#4CAF50" stroke-width="2"/>
+  <text x="1060" y="565" text-anchor="middle" class="comp-title">NEMA17 Stepper Motor</text>
+  <text x="1060" y="582" text-anchor="middle" class="comp-detail">Z-Axis / Cable Winch</text>
+
+  <circle cx="1060" cy="670" r="50" fill="none" stroke="#4CAF50" stroke-width="2"/>
+  <circle cx="1060" cy="670" r="8" fill="#4CAF50"/>
+  <line x1="1010" y1="670" x2="1035" y2="670" stroke="#c62828" stroke-width="3"/>
+  <line x1="1085" y1="670" x2="1110" y2="670" stroke="#c62828" stroke-width="3"/>
+  <line x1="1060" y1="620" x2="1060" y2="645" stroke="#1565C0" stroke-width="3"/>
+  <line x1="1060" y1="695" x2="1060" y2="720" stroke="#1565C0" stroke-width="3"/>
+
+  <rect x="935" y="740" width="250" height="120" rx="4" fill="#fafafa" stroke="#ddd"/>
+  <text x="940" y="760" font-size="11" fill="#333" font-weight="bold">Cable Winch Specs:</text>
+  <text x="945" y="780" font-size="10" fill="#444">Spool core: 20mm dia, 32mm flange</text>
+  <text x="945" y="796" font-size="10" fill="#444">Cable: ~62.83mm per rev</text>
+  <text x="945" y="812" font-size="10" fill="#444">Travel: 206mm (92mm-298mm)</text>
+  <text x="945" y="828" font-size="10" fill="#444">Resolution: ~50.93 steps/mm</text>
+  <text x="945" y="844" font-size="10" fill="#444">3200 steps/rev (200 x 16)</text>
+
+  <!-- Wires: ESP32 to TMC2209 #2 -->
+  <line x1="250" y1="597" x2="420" y2="657" class="wire-signal" stroke="#4CAF50"/>
+  <text x="320" y="620" font-size="9" fill="#4CAF50">STEP</text>
+  <line x1="250" y1="632" x2="420" y2="702" class="wire-signal" stroke="#4CAF50"/>
+  <text x="320" y="662" font-size="9" fill="#4CAF50">DIR</text>
+  <line x1="250" y1="667" x2="420" y2="612" class="wire-signal" stroke="#4CAF50"/>
+  <text x="320" y="644" font-size="9" fill="#4CAF50">EN</text>
+  <line x1="250" y1="707" x2="420" y2="747" class="wire-gnd"/>
+  <text x="320" y="725" font-size="9" fill="#333">GND</text>
+
+  <!-- Wires: TMC2209 to Motor #2 -->
+  <line x1="740" y1="702" x2="920" y2="660" class="wire-motor" stroke="#c62828"/>
+  <text x="830" y="674" font-size="9" fill="#c62828">A1</text>
+  <line x1="740" y1="747" x2="920" y2="680" class="wire-motor" stroke="#c62828"/>
+  <text x="830" y="710" font-size="9" fill="#c62828">A2</text>
+  <line x1="740" y1="792" x2="920" y2="700" class="wire-motor" stroke="#1565C0"/>
+  <text x="830" y="744" font-size="9" fill="#1565C0">B1</text>
+  <line x1="740" y1="837" x2="920" y2="720" class="wire-motor" stroke="#1565C0"/>
+  <text x="830" y="778" font-size="9" fill="#1565C0">B2</text>
+
+  <!-- ================================================================ -->
+  <!-- SECTION 3: ROTATION MOTOR                                        -->
+  <!-- ================================================================ -->
+  <line x1="50" y1="900" x2="1350" y2="900" stroke="#ddd" stroke-width="1"/>
+  <text x="700" y="940" text-anchor="middle" class="section-title" fill="#FF9800">Motor 3: Rotation (NEMA17 + TMC2209 @ 1/16 Microstepping)</text>
+
+  <!-- ESP32 Block -->
+  <rect x="50" y="960" width="200" height="200" rx="8" fill="#1a1a2e" stroke="#0d0d1a" stroke-width="2"/>
+  <text x="150" y="985" text-anchor="middle" font-size="14" font-weight="bold" fill="#4fc3f7">ESP32-S3</text>
+
+  <rect x="65" y="1005" width="170" height="25" rx="4" fill="#FF9800"/>
+  <text x="150" y="1022" text-anchor="middle" font-size="11" fill="#fff" font-weight="bold">GPIO 10 -- ROT_STEP</text>
+
+  <rect x="65" y="1040" width="170" height="25" rx="4" fill="#FF9800"/>
+  <text x="150" y="1057" text-anchor="middle" font-size="11" fill="#fff" font-weight="bold">GPIO 11 -- ROT_DIR</text>
+
+  <rect x="65" y="1075" width="170" height="25" rx="4" fill="#FF9800"/>
+  <text x="150" y="1092" text-anchor="middle" font-size="11" fill="#fff" font-weight="bold">GPIO 12 -- ROT_EN</text>
+
+  <rect x="65" y="1115" width="170" height="25" rx="4" fill="#263238"/>
+  <text x="150" y="1132" text-anchor="middle" font-size="11" fill="#ccc">GND</text>
+
+  <!-- TMC2209 #3 -->
+  <rect x="420" y="960" width="320" height="330" rx="8" fill="#fff" stroke="#FF9800" stroke-width="2"/>
+  <text x="580" y="985" text-anchor="middle" class="comp-title">TMC2209 Driver Board #3</text>
+  <text x="580" y="1002" text-anchor="middle" class="comp-detail">Rotation | 1/16 Microstepping</text>
+
+  <text x="435" y="1035" class="pin-text">EN</text>
+  <text x="435" y="1053" class="pin-desc">Enable (active LOW)</text>
+
+  <text x="435" y="1080" class="pin-text">STEP</text>
+  <text x="435" y="1098" class="pin-desc">Step pulse input</text>
+
+  <text x="435" y="1125" class="pin-text">DIR</text>
+  <text x="435" y="1143" class="pin-desc">Direction input</text>
+
+  <text x="435" y="1170" class="pin-text">GND</text>
+  <text x="435" y="1188" class="pin-desc">Logic ground</text>
+
+  <text x="435" y="1215" class="pin-text">VIO</text>
+  <text x="435" y="1233" class="pin-desc">Logic voltage (3.3V)</text>
+
+  <text x="640" y="1035" class="pin-text">VM</text>
+  <text x="640" y="1053" class="pin-desc">Motor power (24V)</text>
+
+  <text x="640" y="1080" class="pin-text">GND</text>
+  <text x="640" y="1098" class="pin-desc">Power ground</text>
+
+  <text x="640" y="1125" class="pin-text">OA1</text>
+  <text x="640" y="1143" class="pin-desc">Coil A output 1</text>
+
+  <text x="640" y="1170" class="pin-text">OA2</text>
+  <text x="640" y="1188" class="pin-desc">Coil A output 2</text>
+
+  <text x="640" y="1215" class="pin-text">OB1</text>
+  <text x="640" y="1233" class="pin-desc">Coil B output 1</text>
+
+  <text x="640" y="1260" class="pin-text">OB2</text>
+  <text x="640" y="1278" class="pin-desc">Coil B output 2</text>
+
+  <rect x="440" y="1255" width="170" height="28" rx="4" fill="#fff3e0"/>
+  <text x="525" y="1274" text-anchor="middle" font-size="10" fill="#e65100" font-weight="bold">MS1=VIO MS2=VIO (1/16)</text>
+
+  <!-- NEMA17 Motor #2 -->
+  <rect x="920" y="960" width="280" height="330" rx="8" fill="#fff" stroke="#FF9800" stroke-width="2"/>
+  <text x="1060" y="985" text-anchor="middle" class="comp-title">NEMA17 Stepper Motor</text>
+  <text x="1060" y="1002" text-anchor="middle" class="comp-detail">Rotation / Carousel Drive</text>
+
+  <circle cx="1060" cy="1090" r="50" fill="none" stroke="#FF9800" stroke-width="2"/>
+  <circle cx="1060" cy="1090" r="8" fill="#FF9800"/>
+  <line x1="1010" y1="1090" x2="1035" y2="1090" stroke="#c62828" stroke-width="3"/>
+  <line x1="1085" y1="1090" x2="1110" y2="1090" stroke="#c62828" stroke-width="3"/>
+  <line x1="1060" y1="1040" x2="1060" y2="1065" stroke="#1565C0" stroke-width="3"/>
+  <line x1="1060" y1="1115" x2="1060" y2="1140" stroke="#1565C0" stroke-width="3"/>
+
+  <rect x="935" y="1160" width="250" height="120" rx="4" fill="#fafafa" stroke="#ddd"/>
+  <text x="940" y="1180" font-size="11" fill="#333" font-weight="bold">Carousel Specs:</text>
+  <text x="945" y="1200" font-size="10" fill="#444">Belt reduction: 3:1 gear ratio</text>
+  <text x="945" y="1216" font-size="10" fill="#444">3200 motor steps/rev (200 x 16)</text>
+  <text x="945" y="1232" font-size="10" fill="#444">9600 steps/platform rev</text>
+  <text x="945" y="1248" font-size="10" fill="#444">2400 steps/station (90 deg)</text>
+  <text x="945" y="1264" font-size="10" fill="#444">4 stations: Wash, R1, R2, Heat</text>
+
+  <!-- Wires: ESP32 to TMC2209 #3 -->
+  <line x1="250" y1="1017" x2="420" y2="1077" class="wire-signal" stroke="#FF9800"/>
+  <text x="320" y="1040" font-size="9" fill="#FF9800">STEP</text>
+  <line x1="250" y1="1052" x2="420" y2="1122" class="wire-signal" stroke="#FF9800"/>
+  <text x="320" y="1082" font-size="9" fill="#FF9800">DIR</text>
+  <line x1="250" y1="1087" x2="420" y2="1032" class="wire-signal" stroke="#FF9800"/>
+  <text x="320" y="1064" font-size="9" fill="#FF9800">EN</text>
+  <line x1="250" y1="1127" x2="420" y2="1167" class="wire-gnd"/>
+  <text x="320" y="1145" font-size="9" fill="#333">GND</text>
+
+  <!-- Wires: TMC2209 to Motor #3 -->
+  <line x1="740" y1="1122" x2="920" y2="1080" class="wire-motor" stroke="#c62828"/>
+  <text x="830" y="1094" font-size="9" fill="#c62828">A1</text>
+  <line x1="740" y1="1167" x2="920" y2="1100" class="wire-motor" stroke="#c62828"/>
+  <text x="830" y="1130" font-size="9" fill="#c62828">A2</text>
+  <line x1="740" y1="1212" x2="920" y2="1120" class="wire-motor" stroke="#1565C0"/>
+  <text x="830" y="1164" font-size="9" fill="#1565C0">B1</text>
+  <line x1="740" y1="1257" x2="920" y2="1140" class="wire-motor" stroke="#1565C0"/>
+  <text x="830" y="1198" font-size="9" fill="#1565C0">B2</text>
+
+  <!-- ================================================================ -->
+  <!-- POWER DISTRIBUTION                                               -->
+  <!-- ================================================================ -->
+  <line x1="50" y1="1320" x2="1350" y2="1320" stroke="#ddd" stroke-width="1"/>
+  <text x="700" y="1360" text-anchor="middle" class="section-title" fill="#333">Power Distribution</text>
+
+  <!-- 24V PSU -->
+  <rect x="50" y="1380" width="200" height="100" rx="8" fill="#fff" stroke="#c62828" stroke-width="2"/>
+  <text x="150" y="1405" text-anchor="middle" class="comp-title">24V DC PSU</text>
+  <rect x="70" y="1420" width="70" height="22" rx="3" fill="#c62828"/>
+  <text x="105" y="1436" text-anchor="middle" font-size="11" fill="#fff" font-weight="bold">V+ 24V</text>
+  <rect x="160" y="1420" width="70" height="22" rx="3" fill="#333"/>
+  <text x="195" y="1436" text-anchor="middle" font-size="11" fill="#fff" font-weight="bold">GND</text>
+  <text x="150" y="1470" text-anchor="middle" class="note">Size for total motor current draw</text>
+
+  <!-- Power bus lines -->
+  <line x1="140" y1="1442" x2="140" y2="1480" stroke="#c62828" stroke-width="3"/>
+  <line x1="140" y1="1480" x2="900" y2="1480" stroke="#c62828" stroke-width="3"/>
+  <text x="520" y="1475" font-size="11" fill="#c62828" font-weight="bold">24V Bus (VM)</text>
+
+  <line x1="230" y1="1442" x2="230" y2="1510" stroke="#333" stroke-width="3"/>
+  <line x1="230" y1="1510" x2="900" y2="1510" stroke="#333" stroke-width="3"/>
+  <text x="520" y="1505" font-size="11" fill="#333" font-weight="bold">GND Bus</text>
+
+  <!-- Taps to each driver -->
+  <line x1="400" y1="1480" x2="400" y2="1460" stroke="#c62828" stroke-width="2"/>
+  <circle cx="400" cy="1460" r="4" fill="#c62828"/>
+  <text x="400" y="1453" text-anchor="middle" font-size="9" fill="#c62828">TMC #1</text>
+
+  <line x1="600" y1="1480" x2="600" y2="1460" stroke="#c62828" stroke-width="2"/>
+  <circle cx="600" cy="1460" r="4" fill="#c62828"/>
+  <text x="600" y="1453" text-anchor="middle" font-size="9" fill="#c62828">TMC #2</text>
+
+  <line x1="800" y1="1480" x2="800" y2="1460" stroke="#c62828" stroke-width="2"/>
+  <circle cx="800" cy="1460" r="4" fill="#c62828"/>
+  <text x="800" y="1453" text-anchor="middle" font-size="9" fill="#c62828">TMC #3</text>
+
+  <line x1="400" y1="1510" x2="400" y2="1530" stroke="#333" stroke-width="2"/>
+  <circle cx="400" cy="1530" r="4" fill="#333"/>
+
+  <line x1="600" y1="1510" x2="600" y2="1530" stroke="#333" stroke-width="2"/>
+  <circle cx="600" cy="1530" r="4" fill="#333"/>
+
+  <line x1="800" y1="1510" x2="800" y2="1530" stroke="#333" stroke-width="2"/>
+  <circle cx="800" cy="1530" r="4" fill="#333"/>
+
+  <!-- 3.3V from ESP32 -->
+  <rect x="50" y="1540" width="200" height="60" rx="8" fill="#fff" stroke="#1565C0" stroke-width="2"/>
+  <text x="150" y="1565" text-anchor="middle" class="comp-title">ESP32-S3 3.3V Pin</text>
+  <text x="150" y="1585" text-anchor="middle" class="comp-detail">VIO for all TMC2209 logic</text>
+
+  <line x1="250" y1="1570" x2="900" y2="1570" stroke="#1565C0" stroke-width="2" stroke-dasharray="6,3"/>
+  <text x="520" y="1565" font-size="11" fill="#1565C0" font-weight="bold">3.3V Bus (VIO)</text>
+
+  <line x1="400" y1="1570" x2="400" y2="1550" stroke="#1565C0" stroke-width="2"/>
+  <circle cx="400" cy="1550" r="4" fill="#1565C0"/>
+
+  <line x1="600" y1="1570" x2="600" y2="1550" stroke="#1565C0" stroke-width="2"/>
+  <circle cx="600" cy="1550" r="4" fill="#1565C0"/>
+
+  <line x1="800" y1="1570" x2="800" y2="1550" stroke="#1565C0" stroke-width="2"/>
+  <circle cx="800" cy="1550" r="4" fill="#1565C0"/>
+
+  <!-- ================================================================ -->
+  <!-- NOTES                                                             -->
+  <!-- ================================================================ -->
+  <rect x="50" y="1620" width="1300" height="110" rx="8" fill="#fff" stroke="#ddd" stroke-width="1"/>
+  <text x="70" y="1645" font-size="13" font-weight="bold" fill="#1a1a2e">Important Notes</text>
+  <text x="70" y="1665" font-size="11" fill="#444">1. EN/ENA (Enable) is active LOW: pull LOW to enable driver, HIGH to disable (default state in code)</text>
+  <text x="70" y="1683" font-size="11" fill="#444">2. STEP/PUL pulse: 5us HIGH pulse per step. Rising edge triggers one microstep.</text>
+  <text x="70" y="1701" font-size="11" fill="#444">3. TB6600: DIP switch set to 2/B for half-stepping (400 steps/rev). Signal pins are differential (+/-)  connect - pins to GND.</text>
+  <text x="70" y="1719" font-size="11" fill="#444">4. TMC2209 MS pin config: Both HIGH = 1/16 step (MS1=VIO, MS2=VIO). Add 100uF cap across VM/GND on each driver.</text>
+  <text x="70" y="1737" font-size="11" fill="#444">5. Common ground between ESP32, TB6600, and both TMC2209 boards is critical.</text>
+</svg>

@@ -18,7 +18,7 @@
 
 ## Hardware
 - **MCU:** ESP32-S3-N16R8 (16MB flash, 8MB PSRAM)
-- **Motors:** NEMA23 agitation (1/8 microstep), NEMA17 Z-axis + rotation (1/16 microstep), all via TMC2209
+- **Motors:** NEMA23 agitation via TB6600 (2/B half-step, 400 steps/rev), NEMA17 Z-axis + rotation via TMC2209 (1/16 microstep, 3200 steps/rev)
 - **Z-axis:** Cable winch — NEMA17 drives a cable spool (20mm core dia, 32mm flange) with 625ZZ bearing support. ~62.83mm cable per motor rev. 206mm travel (92mm lowered to 298mm raised). Braided steel wire cable runs alongside center tube to head anchor. See `3d_models/assembly_view.scad` for full mechanical design.
 - **Rotation:** Belt-driven 4-station carousel (3:1 gear ratio), home limit switch
 - **Peripherals:** 128x64 I2C OLED (0x3C, optional), piezo buzzer (PWM), heater relay (active LOW), start/mode buttons (active LOW, pull-up)
