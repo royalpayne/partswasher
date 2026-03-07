@@ -28,9 +28,9 @@ PIN_ROT_DIR = 11
 PIN_ROT_EN = 12
 
 # Limit Switches - active LOW, NC (3 pins)
-PIN_Z_TOP = 13
-PIN_Z_BOTTOM = 14
-PIN_ROT_HOME = 15
+PIN_Z_TOP = 40
+PIN_Z_BOTTOM = 41
+PIN_ROT_HOME = 42
 
 # Interface (4 pins)
 PIN_START = 38
