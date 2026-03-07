@@ -195,31 +195,31 @@
   <!-- TMC2209 Signal side -->
   <rect x="330" y="715" width="120" height="130" rx="4" fill="#e8f5e9" stroke="#4CAF50" stroke-width="1"/>
   <text x="390" y="733" text-anchor="middle" font-size="10" fill="#2e7d32" font-weight="bold">Logic Side</text>
-  <text x="340" y="753" class="pin">STEP</text>
-  <text x="340" y="773" class="pin">DIR</text>
-  <text x="340" y="793" class="pin">EN</text>
-  <text x="340" y="813" class="pin">GND</text>
-  <text x="340" y="833" class="pin">VIO (3.3V)</text>
+  <text x="340" y="753" class="pin">EN</text>
+  <text x="340" y="773" class="pin">STEP</text>
+  <text x="340" y="793" class="pin">DIR</text>
+  <text x="340" y="813" class="pin">MS1/MS2 (VDD)</text>
+  <text x="340" y="833" class="pin">VDD (3.3V)</text>
   <circle cx="450" cy="749" r="3" fill="#4CAF50"/>
   <circle cx="450" cy="769" r="3" fill="#4CAF50"/>
   <circle cx="450" cy="789" r="3" fill="#4CAF50"/>
-  <circle cx="450" cy="809" r="3" fill="#333"/>
+  <circle cx="450" cy="809" r="3" fill="#1565C0"/>
   <circle cx="450" cy="829" r="3" fill="#1565C0"/>
 
   <!-- TMC2209 Motor side -->
   <rect x="50" y="715" width="120" height="90" rx="4" fill="#e8f5e9" stroke="#4CAF50" stroke-width="1"/>
   <text x="110" y="733" text-anchor="middle" font-size="10" fill="#2e7d32" font-weight="bold">Motor Side</text>
-  <text x="60" y="753" class="pin">OA1 (A+)</text>
-  <text x="60" y="773" class="pin">OA2 (A-)</text>
-  <text x="60" y="793" class="pin">OB1 (B+)</text>
+  <text x="60" y="753" class="pin">A1 / A2</text>
+  <text x="60" y="773" class="pin">B1 / B2</text>
+  <text x="60" y="793" class="pin">GND (x2)</text>
 
   <!-- TMC2209 Power side -->
   <rect x="50" y="815" width="120" height="55" rx="4" fill="#fff3e0" stroke="#4CAF50" stroke-width="1"/>
   <text x="110" y="833" text-anchor="middle" font-size="10" fill="#2e7d32" font-weight="bold">Power</text>
-  <text x="60" y="853" class="pin">VM (24V) / GND</text>
+  <text x="60" y="853" class="pin">VM (24V)</text>
 
   <!-- TMC2209 extra pins -->
-  <text x="60" y="895" class="pin">OB2 (B-)</text>
+  <text x="60" y="895" class="detail">BIGTREETECH TMC2209 V1.2</text>
   <text x="60" y="915" class="detail">+ 100uF cap across VM/GND</text>
 
   <!-- Wires: ESP32 to TMC2209 #1 -->
@@ -248,29 +248,29 @@
   <!-- TMC2209 Signal side -->
   <rect x="330" y="1175" width="120" height="130" rx="4" fill="#fff3e0" stroke="#FF9800" stroke-width="1"/>
   <text x="390" y="1193" text-anchor="middle" font-size="10" fill="#e65100" font-weight="bold">Logic Side</text>
-  <text x="340" y="1213" class="pin">STEP</text>
-  <text x="340" y="1233" class="pin">DIR</text>
-  <text x="340" y="1253" class="pin">EN</text>
-  <text x="340" y="1273" class="pin">GND</text>
-  <text x="340" y="1293" class="pin">VIO (3.3V)</text>
+  <text x="340" y="1213" class="pin">EN</text>
+  <text x="340" y="1233" class="pin">STEP</text>
+  <text x="340" y="1253" class="pin">DIR</text>
+  <text x="340" y="1273" class="pin">MS1/MS2 (VDD)</text>
+  <text x="340" y="1293" class="pin">VDD (3.3V)</text>
   <circle cx="450" cy="1209" r="3" fill="#FF9800"/>
   <circle cx="450" cy="1229" r="3" fill="#FF9800"/>
   <circle cx="450" cy="1249" r="3" fill="#FF9800"/>
-  <circle cx="450" cy="1269" r="3" fill="#333"/>
+  <circle cx="450" cy="1269" r="3" fill="#1565C0"/>
   <circle cx="450" cy="1289" r="3" fill="#1565C0"/>
 
   <!-- TMC2209 Motor side -->
   <rect x="50" y="1175" width="120" height="90" rx="4" fill="#fff3e0" stroke="#FF9800" stroke-width="1"/>
   <text x="110" y="1193" text-anchor="middle" font-size="10" fill="#e65100" font-weight="bold">Motor Side</text>
-  <text x="60" y="1213" class="pin">OA1 (A+)</text>
-  <text x="60" y="1233" class="pin">OA2 (A-)</text>
-  <text x="60" y="1253" class="pin">OB1/OB2 (B+/B-)</text>
+  <text x="60" y="1213" class="pin">A1 / A2</text>
+  <text x="60" y="1233" class="pin">B1 / B2</text>
+  <text x="60" y="1253" class="pin">GND (x2)</text>
 
   <!-- TMC2209 Power side -->
   <rect x="50" y="1275" width="120" height="55" rx="4" fill="#fff3e0" stroke="#FF9800" stroke-width="1"/>
   <text x="110" y="1293" text-anchor="middle" font-size="10" fill="#e65100" font-weight="bold">Power</text>
-  <text x="60" y="1313" class="pin">VM (24V) / GND</text>
-  <text x="60" y="1378" class="detail">+ 100uF cap across VM/GND</text>
+  <text x="60" y="1313" class="pin">VM (24V)</text>
+  <text x="60" y="1378" class="detail">BIGTREETECH TMC2209 V1.2</text>
 
   <!-- Wires: ESP32 to TMC2209 #2 -->
   <line x1="600" y1="496" x2="450" y2="1209" class="wire" stroke="#FF9800"/>

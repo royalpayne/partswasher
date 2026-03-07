@@ -173,41 +173,46 @@
   <text x="580" y="565" text-anchor="middle" class="comp-title">TMC2209 Driver Board #2</text>
   <text x="580" y="582" text-anchor="middle" class="comp-detail">Z-Axis | 1/16 Microstepping</text>
 
+  <!-- Left pins (top to bottom per V1.2 board) -->
   <text x="435" y="615" class="pin-text">EN</text>
   <text x="435" y="633" class="pin-desc">Enable (active LOW)</text>
 
-  <text x="435" y="660" class="pin-text">STEP</text>
-  <text x="435" y="678" class="pin-desc">Step pulse input</text>
+  <text x="435" y="660" class="pin-text">MS1</text>
+  <text x="435" y="678" class="pin-desc">Microstep sel 1 (VDD=1/16)</text>
 
-  <text x="435" y="705" class="pin-text">DIR</text>
-  <text x="435" y="723" class="pin-desc">Direction input</text>
+  <text x="435" y="705" class="pin-text">MS2</text>
+  <text x="435" y="723" class="pin-desc">Microstep sel 2 (VDD=1/16)</text>
 
-  <text x="435" y="750" class="pin-text">GND</text>
-  <text x="435" y="768" class="pin-desc">Logic ground</text>
+  <text x="435" y="750" class="pin-text">STEP</text>
+  <text x="435" y="768" class="pin-desc">Step pulse input</text>
 
-  <text x="435" y="795" class="pin-text">VIO</text>
-  <text x="435" y="813" class="pin-desc">Logic voltage (3.3V)</text>
+  <text x="435" y="795" class="pin-text">DIR</text>
+  <text x="435" y="813" class="pin-desc">Direction input</text>
 
+  <!-- Right pins (top to bottom per V1.2 board) -->
   <text x="640" y="615" class="pin-text">VM</text>
   <text x="640" y="633" class="pin-desc">Motor power (24V)</text>
 
   <text x="640" y="660" class="pin-text">GND</text>
   <text x="640" y="678" class="pin-desc">Power ground</text>
 
-  <text x="640" y="705" class="pin-text">OA1</text>
-  <text x="640" y="723" class="pin-desc">Coil A output 1</text>
+  <text x="640" y="705" class="pin-text">A2</text>
+  <text x="640" y="723" class="pin-desc">Coil A output -</text>
 
-  <text x="640" y="750" class="pin-text">OA2</text>
-  <text x="640" y="768" class="pin-desc">Coil A output 2</text>
+  <text x="640" y="750" class="pin-text">A1</text>
+  <text x="640" y="768" class="pin-desc">Coil A output +</text>
 
-  <text x="640" y="795" class="pin-text">OB1</text>
-  <text x="640" y="813" class="pin-desc">Coil B output 1</text>
+  <text x="640" y="795" class="pin-text">B1</text>
+  <text x="640" y="813" class="pin-desc">Coil B output +</text>
 
-  <text x="640" y="840" class="pin-text">OB2</text>
-  <text x="640" y="858" class="pin-desc">Coil B output 2</text>
+  <text x="640" y="840" class="pin-text">B2</text>
+  <text x="640" y="858" class="pin-desc">Coil B output -</text>
 
-  <rect x="440" y="835" width="170" height="28" rx="4" fill="#e8f5e9"/>
-  <text x="525" y="854" text-anchor="middle" font-size="10" fill="#2e7d32" font-weight="bold">MS1=VIO MS2=VIO (1/16)</text>
+  <text x="640" y="870" class="pin-text">VDD</text>
+  <text x="640" y="883" class="pin-desc">Logic voltage (3.3V)</text>
+
+  <rect x="440" y="835" width="180" height="28" rx="4" fill="#e8f5e9"/>
+  <text x="530" y="854" text-anchor="middle" font-size="10" fill="#2e7d32" font-weight="bold">MS1=VDD MS2=VDD (1/16)</text>
 
   <!-- NEMA17 Motor -->
   <rect x="920" y="540" width="280" height="330" rx="8" fill="#fff" stroke="#4CAF50" stroke-width="2"/>
@@ -276,41 +281,46 @@
   <text x="580" y="985" text-anchor="middle" class="comp-title">TMC2209 Driver Board #3</text>
   <text x="580" y="1002" text-anchor="middle" class="comp-detail">Rotation | 1/16 Microstepping</text>
 
+  <!-- Left pins (top to bottom per V1.2 board) -->
   <text x="435" y="1035" class="pin-text">EN</text>
   <text x="435" y="1053" class="pin-desc">Enable (active LOW)</text>
 
-  <text x="435" y="1080" class="pin-text">STEP</text>
-  <text x="435" y="1098" class="pin-desc">Step pulse input</text>
+  <text x="435" y="1080" class="pin-text">MS1</text>
+  <text x="435" y="1098" class="pin-desc">Microstep sel 1 (VDD=1/16)</text>
 
-  <text x="435" y="1125" class="pin-text">DIR</text>
-  <text x="435" y="1143" class="pin-desc">Direction input</text>
+  <text x="435" y="1125" class="pin-text">MS2</text>
+  <text x="435" y="1143" class="pin-desc">Microstep sel 2 (VDD=1/16)</text>
 
-  <text x="435" y="1170" class="pin-text">GND</text>
-  <text x="435" y="1188" class="pin-desc">Logic ground</text>
+  <text x="435" y="1170" class="pin-text">STEP</text>
+  <text x="435" y="1188" class="pin-desc">Step pulse input</text>
 
-  <text x="435" y="1215" class="pin-text">VIO</text>
-  <text x="435" y="1233" class="pin-desc">Logic voltage (3.3V)</text>
+  <text x="435" y="1215" class="pin-text">DIR</text>
+  <text x="435" y="1233" class="pin-desc">Direction input</text>
 
+  <!-- Right pins (top to bottom per V1.2 board) -->
   <text x="640" y="1035" class="pin-text">VM</text>
   <text x="640" y="1053" class="pin-desc">Motor power (24V)</text>
 
   <text x="640" y="1080" class="pin-text">GND</text>
   <text x="640" y="1098" class="pin-desc">Power ground</text>
 
-  <text x="640" y="1125" class="pin-text">OA1</text>
-  <text x="640" y="1143" class="pin-desc">Coil A output 1</text>
+  <text x="640" y="1125" class="pin-text">A2</text>
+  <text x="640" y="1143" class="pin-desc">Coil A output -</text>
 
-  <text x="640" y="1170" class="pin-text">OA2</text>
-  <text x="640" y="1188" class="pin-desc">Coil A output 2</text>
+  <text x="640" y="1170" class="pin-text">A1</text>
+  <text x="640" y="1188" class="pin-desc">Coil A output +</text>
 
-  <text x="640" y="1215" class="pin-text">OB1</text>
-  <text x="640" y="1233" class="pin-desc">Coil B output 1</text>
+  <text x="640" y="1215" class="pin-text">B1</text>
+  <text x="640" y="1233" class="pin-desc">Coil B output +</text>
 
-  <text x="640" y="1260" class="pin-text">OB2</text>
-  <text x="640" y="1278" class="pin-desc">Coil B output 2</text>
+  <text x="640" y="1260" class="pin-text">B2</text>
+  <text x="640" y="1278" class="pin-desc">Coil B output -</text>
 
-  <rect x="440" y="1255" width="170" height="28" rx="4" fill="#fff3e0"/>
-  <text x="525" y="1274" text-anchor="middle" font-size="10" fill="#e65100" font-weight="bold">MS1=VIO MS2=VIO (1/16)</text>
+  <text x="640" y="1295" class="pin-text">VDD</text>
+  <text x="640" y="1308" class="pin-desc">Logic voltage (3.3V)</text>
+
+  <rect x="440" y="1255" width="180" height="28" rx="4" fill="#fff3e0"/>
+  <text x="530" y="1274" text-anchor="middle" font-size="10" fill="#e65100" font-weight="bold">MS1=VDD MS2=VDD (1/16)</text>
 
   <!-- NEMA17 Motor #2 -->
   <rect x="920" y="960" width="280" height="330" rx="8" fill="#fff" stroke="#FF9800" stroke-width="2"/>
