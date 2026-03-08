@@ -33,7 +33,8 @@ class PartsWasher:
             config.PIN_AGIT_STEP,
             config.PIN_AGIT_DIR,
             config.PIN_AGIT_EN,
-            config.AGIT_STEPS_PER_REV
+            config.AGIT_STEPS_PER_REV,
+            invert=True  # TB6600: 5V on + side, GPIO on - side
         )
 
         self.z_motor = ZAxisMotor(
@@ -62,7 +63,7 @@ class PartsWasher:
         self.btn_mode = Pin(config.PIN_MODE, Pin.IN, Pin.PULL_UP)
 
         # Initialize heater relay
-        self.heater = Pin(config.PIN_HEAT, Pin.OUT, value=1)  # Active LOW, off
+        self.heater = Pin(config.PIN_HEAT, Pin.OUT, value=0)  # Active HIGH, off
 
         # Initialize buzzer
         self.buzzer = PWM(Pin(config.PIN_BUZZER), freq=2000, duty=0)
@@ -153,10 +154,10 @@ class PartsWasher:
             self.display.text("Auto: Step {}/23".format(self.auto_step), 0, 40, 1)
 
         # Limits status
-        z_status = "T" if not self.z_top.value() else "-"
-        z_status += "B" if not self.z_bottom.value() else "-"
-        r_status = "H" if not self.rot_home.value() else "-"
-        h_status = "ON" if not self.heater.value() else "--"
+        z_status = "T" if self.z_top.value() else "-"
+        z_status += "B" if self.z_bottom.value() else "-"
+        r_status = "H" if self.rot_home.value() else "-"
+        h_status = "ON" if self.heater.value() else "--"
         self.display.text("Z:{} R:{} H:{}".format(z_status, r_status, h_status), 0, 54, 1)
 
         self.display.show()
@@ -329,7 +330,7 @@ class PartsWasher:
             return
         print("Starting HEAT mode")
         self.mode_start_time = time.ticks_ms()
-        self.heater.value(0)  # Turn on heater (active LOW)
+        self.heater.value(1)  # Turn on heater (active HIGH)
         self.agit_motor.start_spin(self.settings.get('heat_rpm'))
         self.is_running = True
 
@@ -342,7 +343,7 @@ class PartsWasher:
         self.z_motor.disable()
         self.rot_motor.stop()
         self.rot_motor.disable()
-        self.heater.value(1)  # Off
+        self.heater.value(0)  # Off
         self.is_running = False
 
     # ============== MODE DURATION CHECK ==============
@@ -592,7 +593,7 @@ class PartsWasher:
             print("SAFETY: Heater blocked - not at HEATER station (at {})".format(
                 config.STATION_NAMES[self.current_station]))
             return
-        self.heater.value(0 if state else 1)
+        self.heater.value(1 if state else 0)
         print(f"Heater {'ON' if state else 'OFF'}")
 
     # ============== MAIN LOOP ==============
@@ -620,23 +621,21 @@ class PartsWasher:
         self.home_all()
 
         while True:
-            # Check buttons
-            self.check_buttons()
-
-            # Update motors
-            self.z_motor.update()
-            self.rot_motor.update()
-            self.agit_motor.update()
-
-            # Check mode completion (skip during auto cycle - it manages its own)
-            if self.is_running and not self.auto_running:
-                self.check_mode_complete()
-
-            # Update display
-            if self.is_homed:
-                self.show_status()
-
-            await asyncio.sleep_ms(10)
+            if self.agit_motor._thread_running:
+                # Yield long to keep GIL free for stepper thread
+                if self.is_running and not self.auto_running:
+                    self.check_mode_complete()
+                await asyncio.sleep_ms(500)
+            else:
+                self.check_buttons()
+                self.z_motor.update()
+                self.rot_motor.update()
+                self.agit_motor.update()
+                if self.is_running and not self.auto_running:
+                    self.check_mode_complete()
+                if self.is_homed:
+                    self.show_status()
+                await asyncio.sleep_ms(10)
 
 
 # ============== ENTRY POINT ==============

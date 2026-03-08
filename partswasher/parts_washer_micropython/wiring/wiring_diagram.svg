@@ -262,7 +262,7 @@
   <text x="230" y="703" text-anchor="middle" class="comp-title">Power Distribution</text>
   <line x1="75" y1="712" x2="385" y2="712" stroke="#eee" stroke-width="1"/>
   <text x="80" y="732" font-size="11" fill="#c62828" font-weight="bold">24V PSU</text>
-  <text x="80" y="748" class="comp-detail">VM on TB6600 + 2x TMC2209 drivers</text>
+  <text x="80" y="748" class="comp-detail">VS on TB6600 + 2x TMC2209 drivers</text>
   <text x="80" y="768" font-size="11" fill="#1565C0" font-weight="bold">3.3V</text>
   <text x="140" y="768" class="comp-detail">OLED, Relay VCC (from ESP32 regulator)</text>
 

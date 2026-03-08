@@ -190,7 +190,7 @@
   <text x="435" y="813" class="pin-desc">Direction input</text>
 
   <!-- Right pins (top to bottom per V1.2 board) -->
-  <text x="640" y="615" class="pin-text">VM</text>
+  <text x="640" y="615" class="pin-text">VS</text>
   <text x="640" y="633" class="pin-desc">Motor power (24V)</text>
 
   <text x="640" y="660" class="pin-text">GND</text>
@@ -298,7 +298,7 @@
   <text x="435" y="1233" class="pin-desc">Direction input</text>
 
   <!-- Right pins (top to bottom per V1.2 board) -->
-  <text x="640" y="1035" class="pin-text">VM</text>
+  <text x="640" y="1035" class="pin-text">VS</text>
   <text x="640" y="1053" class="pin-desc">Motor power (24V)</text>
 
   <text x="640" y="1080" class="pin-text">GND</text>
@@ -380,7 +380,7 @@
   <!-- Power bus lines -->
   <line x1="140" y1="1442" x2="140" y2="1480" stroke="#c62828" stroke-width="3"/>
   <line x1="140" y1="1480" x2="900" y2="1480" stroke="#c62828" stroke-width="3"/>
-  <text x="520" y="1475" font-size="11" fill="#c62828" font-weight="bold">24V Bus (VM)</text>
+  <text x="520" y="1475" font-size="11" fill="#c62828" font-weight="bold">24V Bus (VS)</text>
 
   <line x1="230" y1="1442" x2="230" y2="1510" stroke="#333" stroke-width="3"/>
   <line x1="230" y1="1510" x2="900" y2="1510" stroke="#333" stroke-width="3"/>
@@ -433,6 +433,6 @@
   <text x="70" y="1665" font-size="11" fill="#444">1. EN/ENA (Enable) is active LOW: pull LOW to enable driver, HIGH to disable (default state in code)</text>
   <text x="70" y="1683" font-size="11" fill="#444">2. STEP/PUL pulse: 5us HIGH pulse per step. Rising edge triggers one microstep.</text>
   <text x="70" y="1701" font-size="11" fill="#444">3. TB6600: DIP switch set to 2/B for half-stepping (400 steps/rev). Signal pins are differential (+/-)  connect - pins to GND.</text>
-  <text x="70" y="1719" font-size="11" fill="#444">4. TMC2209 MS pin config: Both HIGH = 1/16 step (MS1=VIO, MS2=VIO). Add 100uF cap across VM/GND on each driver.</text>
+  <text x="70" y="1719" font-size="11" fill="#444">4. TMC2209 MS pin config: Both HIGH = 1/16 step (MS1=VIO, MS2=VIO). Add 100uF cap across VS/GND on each driver.</text>
   <text x="70" y="1737" font-size="11" fill="#444">5. Common ground between ESP32, TB6600, and both TMC2209 boards is critical.</text>
 </svg>

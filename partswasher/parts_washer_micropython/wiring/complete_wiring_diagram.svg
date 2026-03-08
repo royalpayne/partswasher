@@ -216,11 +216,11 @@
   <!-- TMC2209 Power side -->
   <rect x="50" y="815" width="120" height="55" rx="4" fill="#fff3e0" stroke="#4CAF50" stroke-width="1"/>
   <text x="110" y="833" text-anchor="middle" font-size="10" fill="#2e7d32" font-weight="bold">Power</text>
-  <text x="60" y="853" class="pin">VM (24V)</text>
+  <text x="60" y="853" class="pin">VS (24V)</text>
 
   <!-- TMC2209 extra pins -->
   <text x="60" y="895" class="detail">BIGTREETECH TMC2209 V1.2</text>
-  <text x="60" y="915" class="detail">+ 100uF cap across VM/GND</text>
+  <text x="60" y="915" class="detail">+ 100uF cap across VS/GND</text>
 
   <!-- Wires: ESP32 to TMC2209 #1 -->
   <line x1="600" y1="394" x2="450" y2="749" class="wire" stroke="#4CAF50"/>
@@ -269,7 +269,7 @@
   <!-- TMC2209 Power side -->
   <rect x="50" y="1275" width="120" height="55" rx="4" fill="#fff3e0" stroke="#FF9800" stroke-width="1"/>
   <text x="110" y="1293" text-anchor="middle" font-size="10" fill="#e65100" font-weight="bold">Power</text>
-  <text x="60" y="1313" class="pin">VM (24V)</text>
+  <text x="60" y="1313" class="pin">VS (24V)</text>
   <text x="60" y="1378" class="detail">BIGTREETECH TMC2209 V1.2</text>
 
   <!-- Wires: ESP32 to TMC2209 #2 -->
@@ -532,7 +532,7 @@
   <text x="60" y="2010" font-size="11" fill="#444">4. STEP/PUL pulse: 5us HIGH per step, rising edge triggers</text>
   <text x="60" y="2030" font-size="11" fill="#444">5. Limit switches: NC wired to GND, internal pull-ups on ESP32</text>
   <text x="60" y="2050" font-size="11" fill="#444">6. Buttons: NO wired to GND, internal pull-ups on ESP32</text>
-  <text x="60" y="2070" font-size="11" fill="#444">7. Add 100uF electrolytic cap across VM/GND on each TMC2209</text>
+  <text x="60" y="2070" font-size="11" fill="#444">7. Add 100uF electrolytic cap across VS/GND on each TMC2209</text>
   <text x="60" y="2090" font-size="11" fill="#444">8. Heater relay: active LOW, only enabled at HEATER station (safety)</text>
   <text x="60" y="2110" font-size="11" fill="#444">9. OLED is optional - system runs headless if not detected at 0x3C</text>
   <text x="60" y="2130" font-size="11" fill="#444">10. Common ground is critical across all components</text>

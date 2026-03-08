@@ -1,22 +1,29 @@
 """
 Parts Washer v2.0 - Stepper Motor Driver
-Non-blocking stepper control using timer interrupts
+Non-blocking stepper control with timer interrupts for agitation
 """
 
 from machine import Pin, Timer
 import time
+import gc
 
 
 class Stepper:
     """
     Non-blocking stepper motor controller.
-    Uses a timer for step generation to avoid blocking the main loop.
+    Call update() in main loop for position-based moves.
     """
 
-    def __init__(self, step_pin, dir_pin, en_pin, steps_per_rev=200, name="Stepper"):
-        self.step = Pin(step_pin, Pin.OUT, value=0)
-        self.dir = Pin(dir_pin, Pin.OUT, value=0)
-        self.en = Pin(en_pin, Pin.OUT, value=1)  # Disabled by default (active LOW)
+    def __init__(self, step_pin, dir_pin, en_pin, steps_per_rev=200, name="Stepper", invert=False):
+        self.invert = invert  # True for TB6600 with 5V on + side, GPIO on - side
+        if invert:
+            self.step = Pin(step_pin, Pin.OPEN_DRAIN, value=1)
+            self.dir = Pin(dir_pin, Pin.OPEN_DRAIN, value=1)
+            self.en = Pin(en_pin, Pin.OPEN_DRAIN, value=0)  # Disabled by default
+        else:
+            self.step = Pin(step_pin, Pin.OUT, value=0)
+            self.dir = Pin(dir_pin, Pin.OUT, value=0)
+            self.en = Pin(en_pin, Pin.OUT, value=1)  # Disabled by default
 
         self.steps_per_rev = steps_per_rev
         self.name = name
@@ -33,17 +40,13 @@ class Stepper:
         self.step_delay_us = 500  # Microseconds between steps
         self.last_step_time = 0
 
-        # Timer for non-blocking operation
-        self.timer = None
-        self._step_state = False
-
     def enable(self):
         """Enable the motor driver."""
-        self.en.value(0)  # Active LOW
+        self.en.value(1 if self.invert else 0)
 
     def disable(self):
         """Disable the motor driver."""
-        self.en.value(1)
+        self.en.value(0 if self.invert else 1)
         self.running = False
 
     def set_speed_rpm(self, rpm):
@@ -59,6 +62,10 @@ class Stepper:
             hz = 1
         self.step_delay_us = int(1000000 / hz)
 
+    def _dir_value(self, val):
+        """Set direction pin, respecting invert."""
+        self.dir.value(val ^ self.invert)
+
     def move_to(self, target_steps):
         """
         Move to an absolute position (non-blocking).
@@ -67,7 +74,7 @@ class Stepper:
         self.target = int(target_steps)
         if self.target != self.position:
             self.direction = 1 if self.target > self.position else -1
-            self.dir.value(1 if self.direction > 0 else 0)
+            self._dir_value(1 if self.direction > 0 else 0)
             self.enable()
             self.running = True
             self.last_step_time = time.ticks_us()
@@ -107,9 +114,14 @@ class Stepper:
 
     def _do_step(self):
         """Execute one step pulse."""
-        self.step.value(1)
-        time.sleep_us(5)
-        self.step.value(0)
+        if self.invert:
+            self.step.value(0)
+            time.sleep_us(20)
+            self.step.value(1)
+        else:
+            self.step.value(1)
+            time.sleep_us(5)
+            self.step.value(0)
         self.position += self.direction
 
     def is_moving(self):
@@ -134,11 +146,11 @@ class Stepper:
 class AgitationMotor(Stepper):
     """
     Specialized stepper for agitation (jitter/clean/spin modes).
-    Supports continuous oscillation and direction changes.
+    Uses hardware timer interrupt for consistent step timing.
     """
 
-    def __init__(self, step_pin, dir_pin, en_pin, steps_per_rev=400):
-        super().__init__(step_pin, dir_pin, en_pin, steps_per_rev, "Agitation")
+    def __init__(self, step_pin, dir_pin, en_pin, steps_per_rev=400, invert=False, timer_id=0):
+        super().__init__(step_pin, dir_pin, en_pin, steps_per_rev, "Agitation", invert=invert)
 
         # Jitter mode state
         self.jitter_steps = 0
@@ -150,6 +162,64 @@ class AgitationMotor(Stepper):
         self.revolution_count = 0
         self.steps_this_rev = 0
         self.reverse_interval = 60  # Reverse every N revolutions
+
+        # Hardware timer for step generation
+        self.timer = Timer(timer_id)
+        self._timer_running = False
+
+    def _start_timer(self):
+        """Start the hardware timer for stepping."""
+        if self._timer_running:
+            self.timer.deinit()
+        freq = max(1, 1000000 // self.step_delay_us)
+        self.timer.init(freq=freq, mode=Timer.PERIODIC, callback=self._timer_callback)
+        self._timer_running = True
+
+    def _stop_timer(self):
+        """Stop the hardware timer."""
+        if self._timer_running:
+            self.timer.deinit()
+            self._timer_running = False
+
+    @micropython.native
+    def _timer_callback(self, t):
+        """Timer ISR - one step pulse per call."""
+        if not self.running:
+            return
+
+        # Pulse step pin
+        s = self.step
+        if self.invert:
+            s.value(0)
+            s.value(0)
+            s.value(0)
+            s.value(0)
+            s.value(0)
+            s.value(1)
+        else:
+            s.value(1)
+            s.value(1)
+            s.value(1)
+            s.value(0)
+
+        self.position += self.direction
+
+        if self.jitter_mode:
+            self.jitter_count += 1
+            if self.jitter_count >= self.jitter_steps:
+                self.jitter_count = 0
+                self.direction *= -1
+                self.dir.value((1 if self.direction > 0 else 0) ^ self.invert)
+
+        elif self.continuous and self.reverse_interval > 0:
+            self.steps_this_rev += 1
+            if self.steps_this_rev >= self.steps_per_rev:
+                self.steps_this_rev = 0
+                self.revolution_count += 1
+                if self.revolution_count >= self.reverse_interval:
+                    self.revolution_count = 0
+                    self.direction *= -1
+                    self.dir.value((1 if self.direction > 0 else 0) ^ self.invert)
 
     def start_jitter(self, steps_per_osc, osc_per_sec):
         """Start jitter mode - rapid oscillation."""
@@ -164,7 +234,7 @@ class AgitationMotor(Stepper):
 
         self.enable()
         self.running = True
-        self.last_step_time = time.ticks_us()
+        self._start_timer()
 
     def start_continuous(self, rpm, reverse_every_revs=60):
         """Start continuous rotation with periodic reversal."""
@@ -178,8 +248,8 @@ class AgitationMotor(Stepper):
         self.enable()
         self.running = True
         self.direction = 1
-        self.dir.value(1)
-        self.last_step_time = time.ticks_us()
+        self._dir_value(1)
+        self._start_timer()
 
     def start_spin(self, rpm):
         """Start continuous spin in one direction."""
@@ -191,40 +261,16 @@ class AgitationMotor(Stepper):
         self.enable()
         self.running = True
         self.direction = 1
-        self.dir.value(1)
-        self.last_step_time = time.ticks_us()
+        self._dir_value(1)
+        self._start_timer()
 
     def update(self):
-        """Update agitation motor."""
-        if not self.running:
-            return False
-
-        now = time.ticks_us()
-        if time.ticks_diff(now, self.last_step_time) >= self.step_delay_us:
-            self._do_step()
-            self.last_step_time = now
-
-            if self.jitter_mode:
-                self.jitter_count += 1
-                if self.jitter_count >= self.jitter_steps:
-                    self.jitter_count = 0
-                    self.direction *= -1
-                    self.dir.value(1 if self.direction > 0 else 0)
-
-            elif self.continuous and self.reverse_interval > 0:
-                self.steps_this_rev += 1
-                if self.steps_this_rev >= self.steps_per_rev:
-                    self.steps_this_rev = 0
-                    self.revolution_count += 1
-                    if self.revolution_count >= self.reverse_interval:
-                        self.revolution_count = 0
-                        self.direction *= -1
-                        self.dir.value(1 if self.direction > 0 else 0)
-
-        return True
+        """No-op for timer-driven agitation. Returns True if running."""
+        return self.running
 
     def stop(self):
         """Stop agitation."""
+        self._stop_timer()
         self.running = False
         self.continuous = False
         self.jitter_mode = False
@@ -251,14 +297,15 @@ class HomingMixin:
         time.sleep_ms(10)
 
         # Set direction
-        self.dir.value(1 if direction > 0 else 0)
+        self._dir_value(1 if direction > 0 else 0)
 
         # Fast approach until limit triggers
+        # NC switches: closed (LOW) = not at limit, open (HIGH) = at limit
         self.set_speed_hz(fast_speed)
         max_steps = self.steps_per_rev * 10  # Safety limit
         steps = 0
 
-        while limit_pin.value() == 1 and steps < max_steps:
+        while limit_pin.value() == 0 and steps < max_steps:
             self._do_step()
             time.sleep_us(self.step_delay_us)
             steps += 1
@@ -268,16 +315,16 @@ class HomingMixin:
             return False
 
         # Back off
-        self.dir.value(0 if direction > 0 else 1)
+        self._dir_value(0 if direction > 0 else 1)
         for _ in range(backoff_steps):
             self._do_step()
             time.sleep_us(1000)
 
         # Slow approach
-        self.dir.value(1 if direction > 0 else 0)
+        self._dir_value(1 if direction > 0 else 0)
         self.set_speed_hz(slow_speed)
 
-        while limit_pin.value() == 1:
+        while limit_pin.value() == 0:
             self._do_step()
             time.sleep_us(self.step_delay_us)
 
