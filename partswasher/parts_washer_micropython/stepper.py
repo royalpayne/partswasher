@@ -1,9 +1,9 @@
 """
 Parts Washer v2.0 - Stepper Motor Driver
-Non-blocking stepper control with timer interrupts for agitation
+Non-blocking stepper control with PWM for agitation
 """
 
-from machine import Pin, Timer
+from machine import Pin, PWM, Timer
 import time
 import gc
 
@@ -146,95 +146,110 @@ class Stepper:
 class AgitationMotor(Stepper):
     """
     Specialized stepper for agitation (jitter/clean/spin modes).
-    Uses hardware timer interrupt for consistent step timing.
+    Uses hardware PWM for step generation via NPN transistor.
+    Direction changes handled by Timer callback for jitter,
+    or by update() polling for continuous reversal.
     """
 
-    def __init__(self, step_pin, dir_pin, en_pin, steps_per_rev=400, invert=False, timer_id=0):
-        super().__init__(step_pin, dir_pin, en_pin, steps_per_rev, "Agitation", invert=invert)
+    RAMP_STEP_HZ = 50      # Hz increment per ramp step
+    RAMP_INTERVAL_MS = 15   # ms between ramp steps
+
+    def __init__(self, step_pin, dir_pin, en_pin, steps_per_rev=400, timer_id=0):
+        # NPN transistor: always use Pin.OUT (push-pull), no invert
+        super().__init__(step_pin, dir_pin, en_pin, steps_per_rev, "Agitation", invert=False)
+
+        self._step_pin_num = step_pin
+
+        # PWM state
+        self._pwm = None
+        self._pwm_running = False
+        self._target_freq = 0
+        self._current_freq = 0
 
         # Jitter mode state
         self.jitter_steps = 0
-        self.jitter_count = 0
         self.jitter_mode = False
+        self._jitter_timer = Timer(timer_id)
+        self._jitter_timer_running = False
 
         # Continuous mode
         self.continuous = False
         self.revolution_count = 0
         self.steps_this_rev = 0
-        self.reverse_interval = 60  # Reverse every N revolutions
+        self.reverse_interval = 60
 
-        # Hardware timer for step generation
-        self.timer = Timer(timer_id)
-        self._timer_running = False
+        # Ramp state
+        self._ramping = False
+        self._last_ramp_time = 0
 
-    def _start_timer(self):
-        """Start the hardware timer for stepping."""
-        if self._timer_running:
-            self.timer.deinit()
-        freq = max(1, 1000000 // self.step_delay_us)
-        self.timer.init(freq=freq, mode=Timer.PERIODIC, callback=self._timer_callback)
-        self._timer_running = True
+    def _start_pwm(self, target_freq):
+        """Start PWM with ramp-up from current speed."""
+        self._target_freq = max(1, target_freq)
+        if not self._pwm_running:
+            self._current_freq = max(1, min(100, self._target_freq))
+            self._pwm = PWM(Pin(self._step_pin_num, Pin.OUT), freq=self._current_freq, duty=512)
+            self._pwm_running = True
+        self._ramping = self._current_freq != self._target_freq
+        self._last_ramp_time = time.ticks_ms()
 
-    def _stop_timer(self):
-        """Stop the hardware timer."""
-        if self._timer_running:
-            self.timer.deinit()
-            self._timer_running = False
+    def _stop_pwm(self):
+        """Stop PWM output."""
+        if self._pwm_running:
+            self._pwm.deinit()
+            self._pwm = None
+            self._pwm_running = False
+            # Re-init step pin as output LOW
+            self.step = Pin(self._step_pin_num, Pin.OUT, value=0)
+        self._current_freq = 0
+        self._ramping = False
 
-    @micropython.native
-    def _timer_callback(self, t):
-        """Timer ISR - one step pulse per call."""
-        if not self.running:
+    def _update_ramp(self):
+        """Ramp PWM frequency toward target. Call from update()."""
+        if not self._ramping or not self._pwm_running:
             return
+        now = time.ticks_ms()
+        if time.ticks_diff(now, self._last_ramp_time) < self.RAMP_INTERVAL_MS:
+            return
+        self._last_ramp_time = now
 
-        # Pulse step pin
-        s = self.step
-        if self.invert:
-            s.value(0)
-            s.value(0)
-            s.value(0)
-            s.value(0)
-            s.value(0)
-            s.value(1)
-        else:
-            s.value(1)
-            s.value(1)
-            s.value(1)
-            s.value(0)
+        if self._current_freq < self._target_freq:
+            self._current_freq = min(self._current_freq + self.RAMP_STEP_HZ, self._target_freq)
+        elif self._current_freq > self._target_freq:
+            self._current_freq = max(self._current_freq - self.RAMP_STEP_HZ, self._target_freq)
 
-        self.position += self.direction
+        self._pwm.freq(self._current_freq)
+        if self._current_freq == self._target_freq:
+            self._ramping = False
 
-        if self.jitter_mode:
-            self.jitter_count += 1
-            if self.jitter_count >= self.jitter_steps:
-                self.jitter_count = 0
-                self.direction *= -1
-                self.dir.value((1 if self.direction > 0 else 0) ^ self.invert)
-
-        elif self.continuous and self.reverse_interval > 0:
-            self.steps_this_rev += 1
-            if self.steps_this_rev >= self.steps_per_rev:
-                self.steps_this_rev = 0
-                self.revolution_count += 1
-                if self.revolution_count >= self.reverse_interval:
-                    self.revolution_count = 0
-                    self.direction *= -1
-                    self.dir.value((1 if self.direction > 0 else 0) ^ self.invert)
+    def _jitter_callback(self, t):
+        """Timer callback for jitter direction changes."""
+        if not self.running or not self.jitter_mode:
+            return
+        self.direction *= -1
+        self.dir.value(1 if self.direction > 0 else 0)
 
     def start_jitter(self, steps_per_osc, osc_per_sec):
-        """Start jitter mode - rapid oscillation."""
+        """Start jitter mode - rapid oscillation using PWM + timer for direction."""
         self.jitter_steps = steps_per_osc
-        self.jitter_count = 0
         self.jitter_mode = True
         self.continuous = True
 
-        # Calculate step frequency for desired oscillation rate
-        steps_per_sec = osc_per_sec * 2 * steps_per_osc
-        self.set_speed_hz(steps_per_sec)
+        steps_per_sec = int(osc_per_sec * 2 * steps_per_osc)
+        osc_period_ms = int(1000 / (osc_per_sec * 2))
 
         self.enable()
         self.running = True
-        self._start_timer()
+        self.direction = 1
+        self.dir.value(1)
+
+        self._start_pwm(steps_per_sec)
+
+        # Timer for direction changes
+        if self._jitter_timer_running:
+            self._jitter_timer.deinit()
+        self._jitter_timer.init(period=osc_period_ms, mode=Timer.PERIODIC,
+                                callback=self._jitter_callback)
+        self._jitter_timer_running = True
 
     def start_continuous(self, rpm, reverse_every_revs=60):
         """Start continuous rotation with periodic reversal."""
@@ -244,33 +259,60 @@ class AgitationMotor(Stepper):
         self.revolution_count = 0
         self.steps_this_rev = 0
 
-        self.set_speed_rpm(rpm)
+        freq = max(1, int(rpm * self.steps_per_rev / 60))
         self.enable()
         self.running = True
         self.direction = 1
-        self._dir_value(1)
-        self._start_timer()
+        self.dir.value(1)
+        self._start_pwm(freq)
 
     def start_spin(self, rpm):
         """Start continuous spin in one direction."""
         self.jitter_mode = False
         self.continuous = True
-        self.reverse_interval = 0  # Never reverse
+        self.reverse_interval = 0
 
-        self.set_speed_rpm(rpm)
+        freq = max(1, int(rpm * self.steps_per_rev / 60))
         self.enable()
         self.running = True
         self.direction = 1
-        self._dir_value(1)
-        self._start_timer()
+        self.dir.value(1)
+        self._start_pwm(freq)
 
     def update(self):
-        """No-op for timer-driven agitation. Returns True if running."""
-        return self.running
+        """Handle ramp and direction reversals. Returns True if running."""
+        if not self.running:
+            return False
+        self._update_ramp()
+
+        # Track revolutions for continuous reversal (approximate from freq)
+        if self.continuous and self.reverse_interval > 0 and not self.jitter_mode:
+            if self._pwm_running and self._current_freq > 0:
+                now = time.ticks_ms()
+                if not hasattr(self, '_last_rev_check'):
+                    self._last_rev_check = now
+                    self._step_accumulator = 0
+                elapsed = time.ticks_diff(now, self._last_rev_check)
+                if elapsed >= 100:  # Check every 100ms
+                    self._step_accumulator += self._current_freq * elapsed // 1000
+                    self._last_rev_check = now
+                    if self._step_accumulator >= self.steps_per_rev:
+                        revs = self._step_accumulator // self.steps_per_rev
+                        self._step_accumulator %= self.steps_per_rev
+                        self.revolution_count += revs
+                        if self.revolution_count >= self.reverse_interval:
+                            self.revolution_count = 0
+                            self.direction *= -1
+                            self.dir.value(1 if self.direction > 0 else 0)
+
+        return True
 
     def stop(self):
         """Stop agitation."""
-        self._stop_timer()
+        if self._jitter_timer_running:
+            self._jitter_timer.deinit()
+            self._jitter_timer_running = False
+        self._stop_pwm()
         self.running = False
         self.continuous = False
         self.jitter_mode = False

@@ -34,7 +34,6 @@ class PartsWasher:
             config.PIN_AGIT_DIR,
             config.PIN_AGIT_EN,
             config.AGIT_STEPS_PER_REV,
-            invert=True  # TB6600: 5V on + side, GPIO on - side
         )
 
         self.z_motor = ZAxisMotor(
