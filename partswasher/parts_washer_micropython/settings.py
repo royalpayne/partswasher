@@ -22,8 +22,8 @@ class Settings:
         "jitter_duration": 180,
 
         # Motor speeds (RPM)
-        "clean_rpm": 850,
-        "spin_rpm": 950,
+        "clean_rpm": 1700,
+        "spin_rpm": 900,
         "heat_rpm": 250,
         "jitter_osc": 6.0,
         "jitter_degrees": 100,
@@ -32,6 +32,14 @@ class Settings:
         "z_speed_mm_s": 10.0,
         "z_max_travel": 100.0,
         "z_pos_spin": 40.0,  # Above fluid level for spin dry
+        "z_speed_rpm": 300,
+        "rot_speed_hz": 2400,
+        "agit_ramp_hz": 200,    # Hz increment per ramp step
+        "agit_ramp_ms": 15,     # ms between ramp steps
+        "agit_rev_pause": 500,  # ms pause between direction changes
+        "z_accel_steps": 400,   # Steps to ramp over (higher = smoother)
+        "z_start_delay": 2000,  # Starting step delay in us (higher = gentler start)
+        "z_ramp_interval": 16,  # Steps between ISR freq updates (lower = smoother)
 
         # Auto cycle options
         "auto_wash_enabled": True,

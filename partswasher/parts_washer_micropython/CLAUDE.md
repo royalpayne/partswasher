@@ -9,7 +9,7 @@
 |------|---------|
 | `main.py` | `PartsWasher` class - main controller, state machine, button handling, auto-cycle orchestration |
 | `config.py` | Pin assignments (ESP32-S3), hardware motor parameters, mode/station enums (defaults only; runtime values come from settings) |
-| `stepper.py` | Non-blocking stepper motor classes with polling `update()` pattern, timer ISR for agitation, and limit-switch homing |
+| `stepper.py` | Non-blocking stepper motor classes: AgitationMotor (PWM+ramp), ZAxisMotor (PWM position), RotationMotor (PWM position), HomingMixin |
 | `webserver.py` | Async HTTP server (`uasyncio`) with REST API + embedded single-page HTML/CSS/JS UI |
 | `wifi_manager.py` | WiFi STA/AP management, static IP support, credential persistence to `/wifi_config.json` |
 | `settings.py` | JSON-backed persistent settings with type coercion, stored at `/settings.json` |
@@ -22,10 +22,10 @@
   - **Inverted wiring:** 5V (external USB charger) on PUL+/DIR+, ESP32 GPIO on PUL-/DIR-, ENA disconnected
   - Pins use `Pin.OPEN_DRAIN` mode (3.3V GPIO cannot drive TB6600 optocouplers directly)
   - DIP switches for 2/B: SW1=OFF, SW2=ON, SW3=ON
-  - Uses hardware Timer ISR (`@micropython.native`) for step generation
-  - **Known limitation:** uasyncio GIL contention limits smooth operation to ~200 RPM. Higher RPM (900 for spin dry) requires adding NPN transistor to enable PWM hardware pulse generation.
-- **Z-Axis:** NEMA17 + TMC2209, 1/16 microstep (3200 steps/rev)
-- **Rotation:** NEMA17 + TMC2209, 1/16 microstep (3200 steps/rev)
+  - Uses hardware PWM via NPN transistor for step generation (duty=512, 50%)
+  - Software ramp-up/ramp-down for smooth speed transitions and graceful stops
+- **Z-Axis:** NEMA17 + TMC2209, 1/16 microstep (3200 steps/rev), hardware PWM stepping (duty=51, ~5%)
+- **Rotation:** NEMA17 + TMC2209, 1/16 microstep (3200 steps/rev), hardware PWM stepping (duty=51, ~5%)
 - **Z-axis mechanism:** Cable winch — NEMA17 drives a cable spool (20mm core dia, 32mm flange) with 625ZZ bearing support. ~62.83mm cable per motor rev. 206mm travel (92mm lowered to 298mm raised). Braided steel wire cable runs alongside center tube to head anchor. See `3d_models/assembly_view.scad` for full mechanical design.
 - **Rotation mechanism:** Belt-driven 4-station carousel (3:1 gear ratio), home limit switch
 - **Peripherals:** 128x64 I2C OLED (0x3C, optional), piezo buzzer (PWM), heater relay (active HIGH), start/mode buttons (active LOW, pull-up)
@@ -37,7 +37,12 @@
 ## Key Patterns
 
 ### Motor Control
-Motors use a non-blocking polling pattern. Call `motor.move_to()` to set a target, then call `motor.update()` repeatedly in the main loop or async loop. `AgitationMotor` uses a hardware `Timer` ISR with `@micropython.native` for step generation, independent of the async loop. The ISR uses repeated `pin.value()` writes as busy delay (no `sleep_us` allowed in ISR). Jitter, continuous rotation with periodic reversal, and constant-speed spin modes are handled in the ISR callback.
+All three motors use **hardware PWM** for step pulse generation (zero CPU/ISR overhead):
+- **AgitationMotor**: PWM at 50% duty via NPN transistor to TB6600. Software ramp-up/ramp-down via `_update_ramp()` polling. Supports jitter (Timer callback for direction changes), continuous rotation with periodic reversal, and spin modes. Graceful stop via `ramp_down()`.
+- **ZAxisMotor**: PWM at 5% duty direct to TMC2209. Position estimated from elapsed time × frequency. Max error: 1 step (~0.02mm). `update()` checks completion.
+- **RotationMotor**: Same PWM approach as ZAxisMotor. Position estimated from elapsed time.
+
+Call `motor.move_to()` to start, `motor.update()` in main loop to check completion.
 
 ### Homing
 `HomingMixin` provides a two-pass homing sequence: fast approach to limit switch, back off, then slow approach for precision. Used by `ZAxisMotor` and `RotationMotor`.
@@ -73,7 +78,7 @@ mpremote connect /dev/ttyACM0 run main.py
 ## Conventions
 - MicroPython subset of Python 3 (no typing, limited stdlib)
 - Pin logic: TMC2209 enable = active LOW, TB6600 ENA disconnected (always enabled), limit switches = NC (LOW=not triggered, HIGH=triggered), heater relay = active HIGH
-- TB6600 step pulse: open-drain LOW pull for 20us (repeated pin writes as ISR delay), TMC2209: 5us HIGH pulse
+- TB6600 step pulse: hardware PWM 50% duty via NPN transistor, TMC2209: hardware PWM 5% duty direct GPIO
 - Display updates are guarded by `if not self.display: return` for headless operation
 - WiFi falls back to AP mode ("PartsWasher" / "washparts") if no saved credentials
 - All HTTP responses include `Access-Control-Allow-Origin: *` for CORS
@@ -94,14 +99,19 @@ mpremote connect /dev/ttyACM0 run main.py
 1. WASH: Lower -> Jitter (wash_duration/2) -> Clean (wash_duration/2) -> Raise to spin -> Spin dry -> Raise head -> Rotate to RINSE1
 2. RINSE1: Lower -> Clean (rinse1_duration) -> Raise to spin -> Spin dry -> Raise head -> Rotate to RINSE2
 3. RINSE2: Lower -> Clean (rinse2_duration) -> Raise to spin -> Spin dry -> Raise head -> Rotate to HEATER
-4. HEATER: Lower -> Heat (heat_duration) -> Raise head -> Rotate to WASH
+4. HEATER: Lower to heat depth -> Heat (heat_duration) -> Raise head -> Rotate to WASH
 
 ## Z-Axis Positions
 - **Home (0mm)**: Top, clears station dividers for rotation
 - **Spin (`z_pos_spin`)**: Above fluid level for centrifugal drying (default 40mm)
+- **Heat (`z_max_travel - 20mm`)**: 2cm above full depth to prevent overheating basket
 - **Wash (`z_max_travel`)**: Bottom, fully submerged (default 100mm)
 
-## Auto Cycle Guards
-- `auto_running` flag prevents main loop from interfering with auto cycle's mode completion checks
+## Safety Interlocks
+- **Station change**: Blocked unless Z is at home (<1mm) — prevents carousel rotation while basket is lowered
+- **Agitation start**: Jitter/Clean/Heat require Z at full wash depth (`z_max_travel`); Spin requires Z at spin depth (`z_pos_spin`)
+- **Heater**: Only allowed at HEATER station; auto-off when changing stations; Z depth at `z_max_travel - 20mm`
+- **Station change stops agitator**: Agitation motor stopped and disabled before any rotation
+- **Auto cycle bypass**: Safety checks skip depth validation during auto cycle (`auto_running` flag) since the cycle manages Z positioning
 - Double-start protection: `start_current_mode()` and `start_cycle()` reject if `auto_running` is already True
 - Homing auto-fallback: if physical homing fails, enters sim mode automatically

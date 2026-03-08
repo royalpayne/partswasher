@@ -9,7 +9,7 @@ echo "Port: $PORT"
 echo ""
 
 # Upload each file
-for file in config.py stepper.py ssd1306.py main.py; do
+for file in config.py settings.py stepper.py ssd1306.py wifi_manager.py webserver.py main.py; do
     echo "Uploading $file..."
     mpremote connect $PORT fs cp "$file" ":$file"
     if [ $? -eq 0 ]; then

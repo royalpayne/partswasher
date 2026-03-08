@@ -35,6 +35,10 @@ class PartsWasher:
             config.PIN_AGIT_EN,
             config.AGIT_STEPS_PER_REV,
         )
+        self.agit_motor.set_ramp(
+            self.settings.get('agit_ramp_hz'),
+            self.settings.get('agit_ramp_ms')
+        )
 
         self.z_motor = ZAxisMotor(
             config.PIN_Z_STEP,
@@ -271,36 +275,93 @@ class PartsWasher:
 
     # ============== MOVEMENT METHODS ==============
 
+    def _apply_z_ramp(self):
+        """Apply current Z-axis ramp settings."""
+        self.z_motor.set_accel(
+            self.settings.get('z_accel_steps'),
+            self.settings.get('z_start_delay')
+        )
+        self.z_motor.set_ramp_interval(self.settings.get('z_ramp_interval'))
+
     def lower_head(self):
         """Lower head into current station."""
         print("Lowering head...")
-        self.z_motor.set_speed_rpm(300)
+        self._apply_z_ramp()
+        self.z_motor.set_speed_rpm(self.settings.get('z_speed_rpm'))
         self.z_motor.move_to_mm(self.settings.get('z_max_travel'))
+
+    def lower_to_heat(self):
+        """Lower head to heater position (2cm above full depth)."""
+        heat_depth = max(0, self.settings.get('z_max_travel') - 20.0)
+        print("Lowering to heat position ({:.0f}mm)...".format(heat_depth))
+        self._apply_z_ramp()
+        self.z_motor.set_speed_rpm(self.settings.get('z_speed_rpm'))
+        self.z_motor.move_to_mm(heat_depth)
 
     def raise_to_spin(self):
         """Raise head to spin position (above fluid, still in jar)."""
         print("Raising to spin position...")
-        self.z_motor.set_speed_rpm(300)
+        self._apply_z_ramp()
+        self.z_motor.set_speed_rpm(self.settings.get('z_speed_rpm'))
         self.z_motor.move_to_mm(self.settings.get('z_pos_spin'))
 
     def raise_head(self):
         """Raise head to home (top, clears dividers)."""
         print("Raising head...")
-        self.z_motor.set_speed_rpm(300)
+        self._apply_z_ramp()
+        self.z_motor.set_speed_rpm(self.settings.get('z_speed_rpm'))
         self.z_motor.move_to_mm(0)
 
     def go_to_station(self, station):
-        """Move to specified station."""
+        """Move to specified station. Requires Z at home and stops agitator."""
+        # Safety: Z must be at home (0) before rotating
+        if not self.auto_running and self.z_motor.get_position_mm() > 1.0:
+            print("SAFETY: Station change blocked - Z not at home ({:.1f}mm)".format(
+                self.z_motor.get_position_mm()))
+            return False
+        self.heater.value(0)  # Always turn off heater when changing stations
+        self.agit_motor.stop()  # Stop agitator during rotation
+        self.agit_motor.disable()
+        self.is_running = False
         print("Moving to station: {}".format(config.STATION_NAMES[station]))
-        self.rot_motor.set_speed_rpm(30)
+        self.rot_motor.set_speed_hz(self.settings.get('rot_speed_hz'))
         self.rot_motor.move_to_station(station)
         self.current_station = station
+        return True
 
     # ============== AGITATION METHODS ==============
 
+    def _apply_agit_ramp(self):
+        """Apply current ramp settings to agitation motor."""
+        self.agit_motor.set_ramp(
+            self.settings.get('agit_ramp_hz'),
+            self.settings.get('agit_ramp_ms')
+        )
+        self.agit_motor.set_reverse_pause(
+            self.settings.get('agit_rev_pause')
+        )
+
+    def _check_z_depth(self, min_depth=None):
+        """Check Z is at required depth. Returns True if safe to agitate.
+        min_depth: required Z position in mm. Defaults to z_max_travel (full wash depth).
+        """
+        if self.auto_running:
+            return True
+        z_pos = self.z_motor.get_position_mm()
+        if min_depth is None:
+            min_depth = self.settings.get('z_max_travel')
+        if z_pos < min_depth - 1.0:
+            print("SAFETY: Agitator blocked - Z too high ({:.1f}mm, need >={:.1f}mm)".format(
+                z_pos, min_depth))
+            return False
+        return True
+
     def start_jitter(self):
         """Start jitter mode."""
+        if not self._check_z_depth():
+            return
         print("Starting JITTER mode")
+        self._apply_agit_ramp()
         self.mode_start_time = time.ticks_ms()
         jitter_deg = self.settings.get('jitter_degrees')
         jitter_steps = int(jitter_deg / 360.0 * config.AGIT_STEPS_PER_REV)
@@ -309,14 +370,20 @@ class PartsWasher:
 
     def start_clean(self):
         """Start clean mode."""
+        if not self._check_z_depth():
+            return
         print("Starting CLEAN mode")
+        self._apply_agit_ramp()
         self.mode_start_time = time.ticks_ms()
         self.agit_motor.start_continuous(self.settings.get('clean_rpm'), reverse_every_revs=60)
         self.is_running = True
 
     def start_spin(self):
         """Start spin dry mode."""
+        if not self._check_z_depth(self.settings.get('z_pos_spin')):
+            return
         print("Starting SPIN mode")
+        self._apply_agit_ramp()
         self.mode_start_time = time.ticks_ms()
         self.agit_motor.start_spin(self.settings.get('spin_rpm'))
         self.is_running = True
@@ -327,7 +394,11 @@ class PartsWasher:
             print("SAFETY: Heater blocked - not at HEATER station (at {})".format(
                 config.STATION_NAMES[self.current_station]))
             return
+        heat_depth = self.settings.get('z_max_travel') - 20.0  # 2cm above full depth
+        if not self._check_z_depth(max(0, heat_depth)):
+            return
         print("Starting HEAT mode")
+        self._apply_agit_ramp()
         self.mode_start_time = time.ticks_ms()
         self.heater.value(1)  # Turn on heater (active HIGH)
         self.agit_motor.start_spin(self.settings.get('heat_rpm'))
@@ -344,6 +415,7 @@ class PartsWasher:
         self.rot_motor.disable()
         self.heater.value(0)  # Off
         self.is_running = False
+        self.auto_running = False
 
     # ============== MODE DURATION CHECK ==============
 
@@ -369,11 +441,29 @@ class PartsWasher:
         if not self.is_running:
             return False
 
+        # Already ramping down - wait for it to finish
+        if self.agit_motor.is_stopping():
+            if not self.agit_motor.running:
+                # Ramp-down finished
+                self.agit_motor.disable()
+                self.heater.value(0)
+                self.is_running = False
+                return True
+            return False
+
         elapsed = time.ticks_ms() - self.mode_start_time
         duration = self.get_mode_duration_ms()
 
         if elapsed >= duration:
-            self.stop_all()
+            if self.current_mode in (config.MODE_SPIN_DRY, config.MODE_CLEAN):
+                # Ramp down gracefully
+                self.agit_motor.ramp_down()
+                return False  # Not done yet, ramp-down in progress
+            # Jitter/heat: stop immediately
+            self.agit_motor.stop()
+            self.agit_motor.disable()
+            self.heater.value(0)
+            self.is_running = False
             return True
 
         return False
@@ -413,7 +503,7 @@ class PartsWasher:
             (self.go_to_station, config.STATION_HEATER),  # 18 rotate to heater
 
             # Heat dry (steps 19-22)
-            (self.lower_head, None),                      # 19 lower into heater
+            (self.lower_to_heat, None),                    # 19 lower to heat depth
             (self.start_heat, None),                      # 20 heat dry
             (self.raise_head, None),                      # 21 clear dividers
             (self.go_to_station, config.STATION_WASH),    # 22 return home
@@ -430,7 +520,7 @@ class PartsWasher:
                 func()
 
             # Wait for completion
-            if func in (self.lower_head, self.raise_head, self.raise_to_spin):
+            if func in (self.lower_head, self.lower_to_heat, self.raise_head, self.raise_to_spin):
                 while self.z_motor.is_moving():
                     self.z_motor.update()
                     await asyncio.sleep_ms(1)
@@ -534,6 +624,12 @@ class PartsWasher:
             else:
                 self.raise_head()
         elif self.current_mode == config.MODE_MANUAL_ROT:
+            if self.z_motor.get_position_mm() > 1.0:
+                print("SAFETY: Rotate blocked - Z not at home ({:.1f}mm)".format(
+                    self.z_motor.get_position_mm()))
+                return
+            self.agit_motor.stop()
+            self.agit_motor.disable()
             self.rot_motor.next_station()
             self.current_station = self.rot_motor.get_station()
 
@@ -568,6 +664,31 @@ class PartsWasher:
         """Stop current operation (for web API)."""
         self.stop_all()
 
+    async def restart_cycle(self):
+        """Stop everything, return to start position, ready for new cycle."""
+        print("Restarting - returning to home position...")
+        self.stop_all()
+        self.current_mode = config.MODE_AUTO
+        self.auto_step = 0
+
+        if not self.is_homed:
+            print("Not homed, cannot restart")
+            return
+
+        # Raise head to top
+        self.raise_head()
+        while self.z_motor.is_moving():
+            self.z_motor.update()
+            await asyncio.sleep_ms(1)
+
+        # Rotate to wash station
+        self.go_to_station(config.STATION_WASH)
+        while self.rot_motor.is_moving():
+            self.rot_motor.update()
+            await asyncio.sleep_ms(1)
+
+        print("Restart complete - ready for new cycle")
+
     def move_to_station(self, station):
         """Move to station (for web API)."""
         if 0 <= station < config.NUM_STATIONS:
@@ -577,13 +698,15 @@ class PartsWasher:
         """Jog Z-axis by mm amount."""
         current = self.z_motor.get_position_mm()
         new_pos = max(0, min(config.Z_MAX_TRAVEL_MM, current + mm))
-        self.z_motor.set_speed_rpm(300)
+        self._apply_z_ramp()
+        self.z_motor.set_speed_rpm(self.settings.get('z_speed_rpm'))
         self.z_motor.move_to_mm(new_pos)
 
     def move_z_to(self, mm):
         """Move Z-axis to absolute position in mm."""
         pos = max(0, min(config.Z_MAX_TRAVEL_MM, mm))
-        self.z_motor.set_speed_rpm(300)
+        self._apply_z_ramp()
+        self.z_motor.set_speed_rpm(self.settings.get('z_speed_rpm'))
         self.z_motor.move_to_mm(pos)
 
     def set_heater(self, state):
@@ -620,21 +743,15 @@ class PartsWasher:
         self.home_all()
 
         while True:
-            if self.agit_motor._thread_running:
-                # Yield long to keep GIL free for stepper thread
-                if self.is_running and not self.auto_running:
-                    self.check_mode_complete()
-                await asyncio.sleep_ms(500)
-            else:
-                self.check_buttons()
-                self.z_motor.update()
-                self.rot_motor.update()
-                self.agit_motor.update()
-                if self.is_running and not self.auto_running:
-                    self.check_mode_complete()
-                if self.is_homed:
-                    self.show_status()
-                await asyncio.sleep_ms(10)
+            self.check_buttons()
+            self.z_motor.update()
+            self.rot_motor.update()
+            self.agit_motor.update()
+            if self.is_running and not self.auto_running:
+                self.check_mode_complete()
+            if self.is_homed:
+                self.show_status()
+            await asyncio.sleep_ms(10)
 
 
 # ============== ENTRY POINT ==============

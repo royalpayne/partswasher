@@ -17,15 +17,15 @@ PIN_AGIT_STEP = 4
 PIN_AGIT_DIR = 5
 PIN_AGIT_EN = 6
 
-# Z-Axis Motor - TMC2209 (3 pins) — SWAPPED to rotation driver for testing (good TMC2209)
-PIN_Z_STEP = 10
-PIN_Z_DIR = 11
-PIN_Z_EN = 12
+# Z-Axis Motor - TMC2209 (3 pins)
+PIN_Z_STEP = 7
+PIN_Z_DIR = 8
+PIN_Z_EN = 9
 
-# Rotation Motor - TMC2209 (3 pins) — SWAPPED to z-axis driver (dead TMC2209)
-PIN_ROT_STEP = 7
-PIN_ROT_DIR = 8
-PIN_ROT_EN = 9
+# Rotation Motor - TMC2209 (3 pins)
+PIN_ROT_STEP = 10
+PIN_ROT_DIR = 11
+PIN_ROT_EN = 12
 
 # Limit Switches - active LOW, NC (3 pins)
 PIN_Z_TOP = 40
@@ -89,8 +89,8 @@ HEAT_DURATION_MS = 1200000  # 20 minutes
 JITTER_DURATION_MS = 180000  # 3 minutes
 
 # ============== AGITATION SETTINGS ==============
-CLEAN_RPM = 850.0
-SPIN_DRY_RPM = 950.0
+CLEAN_RPM = 1700.0
+SPIN_DRY_RPM = 900.0
 HEAT_RPM = 250.0
 JITTER_OSC = 6.0  # Oscillations per second
 JITTER_DEGREES = 100.0
