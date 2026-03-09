@@ -65,14 +65,27 @@ class WebServer:
                 if line.lower().startswith(b"content-length:"):
                     content_length = int(line.decode().split(":")[1].strip())
 
-            # Read body if present
-            body = None
-            if content_length > 0:
-                body = await reader.read(content_length)
-                body = body.decode()
+            # Handle streaming file upload (raw body, no JSON)
+            path_only = path.split("?")[0]
+            if path_only.startswith("/api/ota/raw/") and method == "POST" and content_length > 0:
+                response = await self._handle_ota_raw_upload(
+                    path_only[13:], reader, content_length)
+            else:
+                # Read body if present (loop to handle large payloads)
+                body = None
+                if content_length > 0:
+                    chunks = []
+                    remaining = content_length
+                    while remaining > 0:
+                        chunk = await reader.read(min(remaining, 2048))
+                        if not chunk:
+                            break
+                        chunks.append(chunk)
+                        remaining -= len(chunk)
+                    body = b"".join(chunks).decode()
 
-            # Route request
-            response = await self._route(method, path, body)
+                # Route request
+                response = await self._route(method, path, body)
 
             # Send response
             if isinstance(response, tuple) and response[0] == "__stream__":
@@ -275,6 +288,44 @@ class WebServer:
             with open("/" + filename, "w") as f:
                 written = f.write(content)
             print(f"OTA: wrote {filename} ({written} bytes)")
+            return self._json_response({"success": True, "filename": filename, "bytes": written})
+        except Exception as e:
+            return self._json_response({"success": False, "error": str(e)}, 400)
+
+    async def _handle_ota_raw_upload(self, filename, reader, content_length):
+        """Stream file upload directly to flash — no JSON, minimal RAM."""
+        gc.collect()
+        if not filename or ".." in filename or "/" in filename:
+            # Drain the body
+            remaining = content_length
+            while remaining > 0:
+                chunk = await reader.read(min(remaining, 2048))
+                if not chunk:
+                    break
+                remaining -= len(chunk)
+            return self._json_response({"success": False, "error": "Invalid filename"}, 400)
+        protected = ("settings.json", "wifi_config.json")
+        if filename in protected:
+            remaining = content_length
+            while remaining > 0:
+                chunk = await reader.read(min(remaining, 2048))
+                if not chunk:
+                    break
+                remaining -= len(chunk)
+            return self._json_response({"success": False, "error": f"{filename} is protected"}, 400)
+        try:
+            written = 0
+            with open("/" + filename, "w") as f:
+                remaining = content_length
+                while remaining > 0:
+                    chunk = await reader.read(min(remaining, 2048))
+                    if not chunk:
+                        break
+                    f.write(chunk.decode())
+                    written += len(chunk)
+                    remaining -= len(chunk)
+            gc.collect()
+            print(f"OTA raw: wrote {filename} ({written} bytes)")
             return self._json_response({"success": True, "filename": filename, "bytes": written})
         except Exception as e:
             return self._json_response({"success": False, "error": str(e)}, 400)

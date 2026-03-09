@@ -56,6 +56,10 @@ The main loop and web server both run on `uasyncio`. The main loop polls buttons
 - `GET /api/settings` / `POST /api/settings` - Read/write persistent settings
 - `POST /api/control` - Actions: start, stop, home, mode, station, z_up, z_down, z_move_to, heater, beep
 - `GET /api/wifi/scan` / `POST /api/wifi/connect` / `GET /api/wifi/status` / `POST /api/wifi/static`
+- `POST /api/ota/raw/<filename>` - Stream file upload directly to flash (no JSON, no RAM limit)
+- `POST /api/ota/upload` - JSON file upload (small files only, <10KB)
+- `GET /api/ota/files` - List files on flash
+- `POST /api/ota/reboot` - Soft reset
 
 ### Settings
 `settings.py` provides a singleton `Settings` instance with defaults. Values are type-coerced to match default types. `main.py` reads operational parameters (durations, RPM speeds, Z travel, jitter settings) from `self.settings` at runtime, so changes made via the web UI take effect immediately. Hardware constants (pin assignments, steps-per-rev, gear ratios) remain in `config.py`.
@@ -65,15 +69,21 @@ Set `sim_mode: true` in settings (via web UI or `/settings.json`) to test withou
 
 ## Build & Deploy
 ```bash
-# Upload all files to ESP32-S3 via USB
+# OTA upload over WiFi (preferred — works without serial access)
+python3 ota_push.py                     # Upload all + watch for changes
+python3 ota_push.py --reboot            # Upload all + auto-reboot + watch
+python3 ota_push.py main.py stepper.py  # Upload specific files
+python3 ota_push.py --no-watch          # Upload only, exit
+
+# USB serial upload (fallback)
 ./upload.sh
-
-# Or manually with mpremote
 mpremote connect /dev/ttyACM0 fs cp main.py :main.py
-
-# Run without flashing
-mpremote connect /dev/ttyACM0 run main.py
 ```
+
+### OTA Architecture
+- `ota_push.py` uploads files via `POST /api/ota/raw/<filename>` (raw body, streams to flash, no RAM limit)
+- Old JSON upload endpoint (`/api/ota/upload`) still works for files <10KB but OOMs on large files
+- `ota_bootstrap.py` is a fallback recovery server: if main firmware is broken, upload it via the JSON endpoint (it's tiny), reboot, then upload all files via port 8080. Includes WiFi auto-connect from saved config.
 
 ## Conventions
 - MicroPython subset of Python 3 (no typing, limited stdlib)
