@@ -466,12 +466,15 @@ class HomingMixin:
 
 
 class ZAxisMotor(Stepper, HomingMixin):
-    """Z-axis motor with hardware PWM stepping.
+    """Z-axis motor with hardware PWM stepping and acceleration ramp.
 
-    PWM generates step pulses in hardware (zero CPU/ISR overhead).
-    Position is estimated from elapsed time and step frequency.
-    Max position error: 1 step (~0.02mm) — acceptable for Z-axis.
+    PWM generates step pulses in hardware (smooth, jitter-free).
+    Disables motor briefly before direction changes to release holding torque.
     """
+
+    RAMP_START_HZ = 200     # Starting frequency (gentle start)
+    RAMP_STEP_HZ = 100      # Hz increase per ramp step
+    RAMP_INTERVAL_MS = 15   # ms between ramp steps
 
     def __init__(self, step_pin, dir_pin, en_pin, steps_per_mm=400, max_travel_mm=100, timer_id=1):
         super().__init__(step_pin, dir_pin, en_pin, int(steps_per_mm * 8), "Z-Axis")
@@ -481,10 +484,15 @@ class ZAxisMotor(Stepper, HomingMixin):
         self._step_pin_num = step_pin
         self._pwm = None
         self._pwm_running = False
-        self._move_start_time = 0
-        self._move_start_pos = 0
         self._move_steps = 0
-        self._step_freq = 0
+        self._target_freq = 0
+        self._current_freq = 0
+        self._ramping = False
+        self._last_ramp_time = 0
+        self._steps_counted = 0
+        self._step_remainder = 0
+        self._last_count_time = 0
+        self._move_start_pos = 0
 
     def set_ramp_interval(self, interval):
         """No-op for compatibility."""
@@ -499,15 +507,37 @@ class ZAxisMotor(Stepper, HomingMixin):
             self.step = Pin(self._step_pin_num, Pin.OUT, value=0)
 
     def _update_position(self):
-        """Estimate position from elapsed time and step frequency."""
+        """Accumulate steps based on current frequency and elapsed time."""
         if not self._pwm_running:
             return
-        elapsed_ms = time.ticks_diff(time.ticks_ms(), self._move_start_time)
-        steps_done = min(self._move_steps, self._step_freq * elapsed_ms // 1000)
-        self.position = self._move_start_pos + steps_done * self.direction
+        now = time.ticks_ms()
+        elapsed_ms = time.ticks_diff(now, self._last_count_time)
+        if elapsed_ms > 0:
+            total = self._current_freq * elapsed_ms + self._step_remainder
+            steps = total // 1000
+            self._step_remainder = total % 1000
+            self._steps_counted += steps
+            if self._steps_counted > self._move_steps:
+                self._steps_counted = self._move_steps
+            self.position = self._move_start_pos + self._steps_counted * self.direction
+            self._last_count_time = now
+
+    def _update_ramp(self):
+        """Ramp PWM frequency toward target."""
+        if not self._ramping or not self._pwm_running:
+            return
+        now = time.ticks_ms()
+        if time.ticks_diff(now, self._last_ramp_time) < self.RAMP_INTERVAL_MS:
+            return
+        self._last_ramp_time = now
+        if self._current_freq < self._target_freq:
+            self._current_freq = min(self._current_freq + self.RAMP_STEP_HZ, self._target_freq)
+            self._pwm.freq(self._current_freq)
+            if self._current_freq >= self._target_freq:
+                self._ramping = False
 
     def move_to(self, target_steps):
-        """Start hardware PWM-driven move to absolute position."""
+        """Start hardware PWM-driven move to absolute position with ramp."""
         target_steps = int(target_steps)
         if target_steps == self.position:
             return
@@ -517,16 +547,22 @@ class ZAxisMotor(Stepper, HomingMixin):
         self.target = target_steps
         self._move_start_pos = self.position
         self._move_steps = abs(self.target - self.position)
+        self._steps_counted = 0
+        self._step_remainder = 0
         self.direction = 1 if self.target > self.position else -1
         self._dir_value(1 if self.direction > 0 else 0)
         self.enable()
+        time.sleep_ms(5)
         self.running = True
 
-        self._step_freq = max(1, 1000000 // max(1, self.step_delay_us))
-        self._move_start_time = time.ticks_ms()
+        self._target_freq = max(1, 1000000 // max(1, self.step_delay_us))
+        self._current_freq = min(self.RAMP_START_HZ, self._target_freq)
+        self._ramping = self._current_freq < self._target_freq
+        self._last_ramp_time = time.ticks_ms()
+        self._last_count_time = time.ticks_ms()
 
-        # Hardware PWM - pulses generated with zero CPU overhead
-        self._pwm = PWM(Pin(self._step_pin_num, Pin.OUT), freq=self._step_freq, duty=51)
+        # Start PWM at ramp start speed, 50% duty for reliable step detection
+        self._pwm = PWM(Pin(self._step_pin_num, Pin.OUT), freq=self._current_freq, duty=512)
         self._pwm_running = True
 
     def stop(self):
@@ -535,16 +571,18 @@ class ZAxisMotor(Stepper, HomingMixin):
             self._update_position()
             self._stop_pwm()
         self.running = False
+        self._ramping = False
         self.target = self.position
 
     def update(self):
-        """Check if PWM move is complete. Call regularly from main loop."""
+        """Ramp speed and check if PWM move is complete."""
         if not self.running:
             return False
         if not self._pwm_running:
             return False
+        self._update_ramp()
         self._update_position()
-        if abs(self.position - self.target) <= 1:
+        if self._steps_counted >= self._move_steps:
             self._stop_pwm()
             self.position = self.target
             self.running = False

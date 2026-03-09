@@ -92,6 +92,9 @@ class PartsWasher:
         self.is_running = False
         self.auto_step = 0
         self.auto_running = False
+        self.auto_sub_mode = None  # Sub-mode during auto cycle (JITTER, CLEAN, etc.)
+        self.auto_start_time = 0
+        self.moving_to_station = False
         self.mode_start_time = 0
 
         # Button state
@@ -288,11 +291,11 @@ class PartsWasher:
         print("Lowering head...")
         self._apply_z_ramp()
         self.z_motor.set_speed_rpm(self.settings.get('z_speed_rpm'))
-        self.z_motor.move_to_mm(self.settings.get('z_max_travel'))
+        self.z_motor.move_to_mm(self.settings.get('z_pos_wash'))
 
     def lower_to_heat(self):
-        """Lower head to heater position (2cm above full depth)."""
-        heat_depth = max(0, self.settings.get('z_max_travel') - 20.0)
+        """Lower head to heater position (2cm above wash depth)."""
+        heat_depth = max(0, self.settings.get('z_pos_wash') - 20.0)
         print("Lowering to heat position ({:.0f}mm)...".format(heat_depth))
         self._apply_z_ramp()
         self.z_motor.set_speed_rpm(self.settings.get('z_speed_rpm'))
@@ -310,7 +313,7 @@ class PartsWasher:
         print("Raising head...")
         self._apply_z_ramp()
         self.z_motor.set_speed_rpm(self.settings.get('z_speed_rpm'))
-        self.z_motor.move_to_mm(0)
+        self.z_motor.move_to_mm(self.settings.get('z_pos_home'))
 
     def go_to_station(self, station):
         """Move to specified station. Requires Z at home and stops agitator."""
@@ -343,13 +346,13 @@ class PartsWasher:
 
     def _check_z_depth(self, min_depth=None):
         """Check Z is at required depth. Returns True if safe to agitate.
-        min_depth: required Z position in mm. Defaults to z_max_travel (full wash depth).
+        min_depth: required Z position in mm. Defaults to z_pos_wash (full wash depth).
         """
         if self.auto_running:
             return True
         z_pos = self.z_motor.get_position_mm()
         if min_depth is None:
-            min_depth = self.settings.get('z_max_travel')
+            min_depth = self.settings.get('z_pos_wash')
         if z_pos < min_depth - 1.0:
             print("SAFETY: Agitator blocked - Z too high ({:.1f}mm, need >={:.1f}mm)".format(
                 z_pos, min_depth))
@@ -394,7 +397,7 @@ class PartsWasher:
             print("SAFETY: Heater blocked - not at HEATER station (at {})".format(
                 config.STATION_NAMES[self.current_station]))
             return
-        heat_depth = self.settings.get('z_max_travel') - 20.0  # 2cm above full depth
+        heat_depth = self.settings.get('z_pos_wash') - 20.0  # 2cm above wash depth
         if not self._check_z_depth(max(0, heat_depth)):
             return
         print("Starting HEAT mode")
@@ -421,18 +424,20 @@ class PartsWasher:
 
     def get_mode_duration_ms(self):
         """Get target duration in ms for the current mode/station."""
-        if self.current_mode == config.MODE_JITTER:
+        # During auto cycle, use sub-mode for duration lookup
+        mode = self.auto_sub_mode if self.auto_running and self.auto_sub_mode is not None else self.current_mode
+        if mode == config.MODE_JITTER:
             return self.settings.get_timing_ms('wash_duration') // 2
-        elif self.current_mode == config.MODE_CLEAN:
+        elif mode == config.MODE_CLEAN:
             if self.current_station == config.STATION_WASH:
                 return self.settings.get_timing_ms('wash_duration') // 2
             elif self.current_station == config.STATION_RINSE2:
                 return self.settings.get_timing_ms('rinse2_duration')
             else:
                 return self.settings.get_timing_ms('rinse1_duration')
-        elif self.current_mode == config.MODE_SPIN_DRY:
+        elif mode == config.MODE_SPIN_DRY:
             return self.settings.get_timing_ms('spin_duration')
-        elif self.current_mode == config.MODE_HEAT:
+        elif mode == config.MODE_HEAT:
             return self.settings.get_timing_ms('heat_duration')
         return 0
 
@@ -455,7 +460,14 @@ class PartsWasher:
         duration = self.get_mode_duration_ms()
 
         if elapsed >= duration:
-            if self.current_mode in (config.MODE_SPIN_DRY, config.MODE_CLEAN):
+            check_mode = self.auto_sub_mode if self.auto_running and self.auto_sub_mode is not None else self.current_mode
+            if check_mode in (config.MODE_SPIN_DRY, config.MODE_CLEAN):
+                if not self.agit_motor.running:
+                    # Ramp-down already completed (stop() cleared _stopping flag)
+                    self.agit_motor.disable()
+                    self.heater.value(0)
+                    self.is_running = False
+                    return True
                 # Ramp down gracefully
                 self.agit_motor.ramp_down()
                 return False  # Not done yet, ramp-down in progress
@@ -511,6 +523,8 @@ class PartsWasher:
 
         for i, (func, arg) in enumerate(steps):
             self.auto_step = i
+            print("AUTO step {}: {} z={:.1f}mm".format(i, func.__name__,
+                  self.z_motor.get_position_mm()))
             self.show_status()
 
             # Execute step
@@ -524,21 +538,25 @@ class PartsWasher:
                 while self.z_motor.is_moving():
                     self.z_motor.update()
                     await asyncio.sleep_ms(1)
+                print("  Z move done: {:.1f}mm".format(self.z_motor.get_position_mm()))
 
             elif func == self.go_to_station:
                 while self.rot_motor.is_moving():
                     self.rot_motor.update()
                     await asyncio.sleep_ms(1)
+                print("  Station move done")
 
             elif func in (self.start_jitter, self.start_clean, self.start_spin, self.start_heat):
-                # Set current_mode so get_mode_duration_ms() returns correct duration
+                # Set auto_sub_mode so get_mode_duration_ms() returns correct duration
                 mode_map = {
                     self.start_jitter: config.MODE_JITTER,
                     self.start_clean: config.MODE_CLEAN,
                     self.start_spin: config.MODE_SPIN_DRY,
                     self.start_heat: config.MODE_HEAT,
                 }
-                self.current_mode = mode_map[func]
+                self.auto_sub_mode = mode_map[func]
+                print("  Sub-mode {} running, is_running={}".format(
+                    config.MODE_NAMES[self.auto_sub_mode], self.is_running))
                 while not self.check_mode_complete():
                     self.agit_motor.update()
                     self.show_status()
@@ -547,14 +565,15 @@ class PartsWasher:
                     if not self.btn_start.value():
                         print("Auto cycle aborted")
                         self.stop_all()
-                        self.auto_running = False
-                        self.current_mode = config.MODE_AUTO
+                        self.auto_sub_mode = None
                         return
-                self.current_mode = config.MODE_AUTO
+                print("  Mode complete")
+                self.auto_sub_mode = None
 
         print("AUTO cycle complete!")
         self.stop_all()
         self.auto_running = False
+        self.auto_sub_mode = None
         self.auto_step = 0
         self.current_mode = config.MODE_AUTO
         self.beep(4)
@@ -602,24 +621,75 @@ class PartsWasher:
         else:
             self.start_current_mode()
 
+    async def _lower_then_start(self, mode, station=None):
+        """Raise Z to home, rotate to station if needed, lower to depth, start mode."""
+        # Raise Z to home first
+        z_pos = self.z_motor.get_position_mm()
+        if z_pos > 1.0:
+            print("Raising Z to home before starting...")
+            self._apply_z_ramp()
+            self.z_motor.set_speed_rpm(self.settings.get('z_speed_rpm'))
+            self.z_motor.move_to_mm(self.settings.get('z_pos_home'))
+            while self.z_motor.is_moving():
+                self.z_motor.update()
+                await asyncio.sleep_ms(1)
+
+        # Rotate to station if specified and not already there
+        if station is not None and station != self.current_station:
+            print("Rotating to station {}...".format(config.STATION_NAMES[station]))
+            self.go_to_station(station)
+            while self.rot_motor.is_moving():
+                self.rot_motor.update()
+                await asyncio.sleep_ms(1)
+
+        # Determine target depth
+        if mode == config.MODE_SPIN_DRY:
+            target_mm = self.settings.get('z_pos_spin')
+        elif mode == config.MODE_HEAT:
+            target_mm = max(0, self.settings.get('z_pos_wash') - 20.0)
+        else:
+            target_mm = self.settings.get('z_pos_wash')
+
+        # Lower Z to target depth
+        print("Lowering to {:.0f}mm for {}...".format(
+            target_mm, config.MODE_NAMES[mode]))
+        self._apply_z_ramp()
+        self.z_motor.set_speed_rpm(self.settings.get('z_speed_rpm'))
+        self.z_motor.move_to_mm(target_mm)
+        while self.z_motor.is_moving():
+            self.z_motor.update()
+            await asyncio.sleep_ms(1)
+
+        # Start the mode (jitter only at wash station)
+        if mode == config.MODE_JITTER and self.current_station != config.STATION_WASH:
+            print("JITTER only at WASH station, running CLEAN instead")
+            mode = config.MODE_CLEAN
+        self.current_mode = mode
+        if mode == config.MODE_JITTER:
+            self.start_jitter()
+        elif mode == config.MODE_CLEAN:
+            self.start_clean()
+        elif mode == config.MODE_SPIN_DRY:
+            self.start_spin()
+        elif mode == config.MODE_HEAT:
+            self.start_heat()
+
     def start_current_mode(self):
         """Start the currently selected mode."""
+        if self.moving_to_station:
+            print("Wait - moving to station")
+            return
         if self.current_mode == config.MODE_AUTO:
             if self.auto_running:
                 print("Auto cycle already running")
                 return
             asyncio.create_task(self.run_auto_cycle())
-        elif self.current_mode == config.MODE_JITTER:
-            self.start_jitter()
-        elif self.current_mode == config.MODE_CLEAN:
-            self.start_clean()
-        elif self.current_mode == config.MODE_SPIN_DRY:
-            self.start_spin()
-        elif self.current_mode == config.MODE_HEAT:
-            self.start_heat()
+        elif self.current_mode in (config.MODE_JITTER, config.MODE_CLEAN,
+                                    config.MODE_SPIN_DRY, config.MODE_HEAT):
+            asyncio.create_task(self._lower_then_start(self.current_mode, self.current_station))
         elif self.current_mode == config.MODE_MANUAL_Z:
             # Toggle Z position
-            if self.z_motor.get_position_mm() < self.settings.get('z_max_travel') / 2:
+            if self.z_motor.get_position_mm() < self.settings.get('z_pos_wash') / 2:
                 self.lower_head()
             else:
                 self.raise_head()
@@ -689,10 +759,65 @@ class PartsWasher:
 
         print("Restart complete - ready for new cycle")
 
-    def move_to_station(self, station):
-        """Move to station (for web API)."""
+    def select_station(self, station):
+        """Select station: raise Z to home, rotate to station, auto-set mode."""
         if 0 <= station < config.NUM_STATIONS:
-            self.go_to_station(station)
+            if self.moving_to_station:
+                print("Already moving to station, ignoring")
+                return
+            # Auto-set appropriate mode for station
+            if station == config.STATION_WASH:
+                self.current_mode = config.MODE_JITTER
+            elif station == config.STATION_HEATER:
+                self.current_mode = config.MODE_HEAT
+            else:
+                self.current_mode = config.MODE_CLEAN
+            print("Station {} -> mode {}".format(
+                config.STATION_NAMES[station], config.MODE_NAMES[self.current_mode]))
+            asyncio.create_task(self._move_to_station(station))
+
+    async def _move_to_station(self, station):
+        """Stop everything, raise Z to home, then rotate to station."""
+        self.moving_to_station = True
+
+        # Stop any running mode first
+        self.agit_motor.stop()
+        self.agit_motor.disable()
+        self.heater.value(0)
+        self.is_running = False
+        self.rot_motor.stop()
+        self.rot_motor.disable()
+
+        # Raise Z to home
+        z_now = self.z_motor.get_position_mm()
+        z_home = self.settings.get('z_pos_home')
+        print("Raising Z: {:.1f}mm -> {:.1f}mm (running={})".format(
+            z_now, z_home, self.z_motor.is_moving()))
+        self.z_motor.stop()  # Stop any in-progress Z move
+        self._apply_z_ramp()
+        self.z_motor.set_speed_rpm(self.settings.get('z_speed_rpm'))
+        self.z_motor.move_to_mm(z_home)
+        print("  Z move started: running={}, pos={}, target={}".format(
+            self.z_motor.is_moving(), self.z_motor.position, self.z_motor.target))
+        while self.z_motor.is_moving():
+            self.z_motor.update()
+            await asyncio.sleep_ms(1)
+        print("  Z at home: {:.1f}mm".format(self.z_motor.get_position_mm()))
+
+        # Rotate to station
+        if station != self.current_station:
+            print("Rotating to {}...".format(config.STATION_NAMES[station]))
+            self.rot_motor.set_speed_hz(self.settings.get('rot_speed_hz'))
+            self.rot_motor.move_to_station(station)
+            self.current_station = station
+            while self.rot_motor.is_moving():
+                self.rot_motor.update()
+                await asyncio.sleep_ms(1)
+        else:
+            self.current_station = station
+
+        self.moving_to_station = False
+        print("At station {}, ready".format(config.STATION_NAMES[station]))
 
     def jog_z(self, mm):
         """Jog Z-axis by mm amount."""
@@ -748,7 +873,9 @@ class PartsWasher:
             self.rot_motor.update()
             self.agit_motor.update()
             if self.is_running and not self.auto_running:
-                self.check_mode_complete()
+                if self.check_mode_complete():
+                    if self.current_mode == config.MODE_SPIN_DRY:
+                        self.raise_head()
             if self.is_homed:
                 self.show_status()
             await asyncio.sleep_ms(10)

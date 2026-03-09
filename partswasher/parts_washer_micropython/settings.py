@@ -30,8 +30,10 @@ class Settings:
 
         # Z-axis positions (mm from home/top)
         "z_speed_mm_s": 10.0,
-        "z_max_travel": 100.0,
+        "z_pos_home": 0.0,   # Top position, clears dividers
         "z_pos_spin": 40.0,  # Above fluid level for spin dry
+        "z_pos_wash": 100.0, # Bottom position, fully submerged
+        "z_max_travel": 100.0,
         "z_speed_rpm": 300,
         "rot_speed_hz": 2400,
         "agit_ramp_hz": 200,    # Hz increment per ramp step

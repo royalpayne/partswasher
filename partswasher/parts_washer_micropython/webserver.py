@@ -155,7 +155,13 @@ class WebServer:
             "elapsed_ms": elapsed,
             "duration_ms": duration,
             "auto_step": self.washer.auto_step,
+            "auto_sub_mode": self.washer.auto_sub_mode,
             "auto_total": 23,
+            "auto_total_min": (self.washer.settings.get('wash_duration') +
+                self.washer.settings.get('rinse1_duration') +
+                self.washer.settings.get('rinse2_duration') +
+                self.washer.settings.get('heat_duration') +
+                3 * self.washer.settings.get('spin_duration')) // 60,
             "wifi": self.wifi.get_status()
         }
 
@@ -190,7 +196,7 @@ class WebServer:
                 return self._json_response({"success": True, "mode": mode})
             elif action == "station":
                 station = data.get("station", 0)
-                self.washer.move_to_station(station)
+                self.washer.select_station(station)
                 return self._json_response({"success": True, "station": station})
             elif action == "z_up":
                 self.washer.jog_z(10)
@@ -441,7 +447,8 @@ summary:hover{color:#bbb}
 <div class="ii"><span class="il">Z</span><span id="dz" class="iv">0.0 mm</span></div>
 <div class="ii"><span class="il">HEATER</span><span id="dh" class="iv off">OFF</span></div>
 <div id="daw" class="ii" style="display:none"><span class="il">AUTO</span><span id="da" class="iv">0/23</span></div>
-<div class="ii"><span class="il">HOME</span><span id="dhm" class="iv off">NO</span></div>
+<div class="ii"><span class="il">CYCLE</span><span id="datv" class="iv">0 min</span></div>
+<div class="ii"><span class="il">HOMED</span><span id="dhm" class="iv off">NO</span></div>
 </div></section>
 <section><h2>Controls</h2><div class="bg">
 <button onclick="sc('start')" class="btn bg0">START</button>
@@ -479,7 +486,7 @@ s.addEventListener('change',function(){sc('z_move_to',{position:s.value*10});za=
 async function fs(){try{var r=await fetch('/api/status');var d=await r.json();uu(d)}catch(e){document.getElementById('si').className='sd off';document.getElementById('ct').textContent='OFFLINE'}}
 function ft(ms){var s=Math.floor(ms/1000);var m=Math.floor(s/60);s=s%60;return(m<10?'0':'')+m+':'+(s<10?'0':'')+s}
 function uu(d){document.getElementById('si').className='sd on';document.getElementById('ct').textContent='ONLINE';
-document.getElementById('dm').textContent=d.mode_name||'--';document.getElementById('dm').className=d.running?'dv run':'dv';
+var mn=d.mode_name||'--';if(d.mode===4&&d.running&&d.auto_sub_mode!==null){var sn=['JITTER','CLEAN','SPIN','HEAT'];mn='AUTO ('+sn[d.auto_sub_mode]+')'}document.getElementById('dm').textContent=mn;document.getElementById('dm').className=d.running?'dv run':'dv';
 var sb=document.getElementById('ds');if(!d.homed){sb.textContent='NOT HOMED';sb.className='sb warn'}else if(d.running){sb.textContent='RUNNING';sb.className='sb run'}else{sb.textContent='READY';sb.className='sb ready'}
 for(var i=0;i<4;i++){var e=document.getElementById('sc-'+i);if(e)e.className=i===d.station?'ci act':'ci'}
 var tm=document.getElementById('dt'),du=document.getElementById('dd'),pg=document.getElementById('dp');
@@ -489,6 +496,7 @@ if(!za){document.getElementById('jz').textContent=(zm?zt:zp)+' cm';document.getE
 var h=document.getElementById('dh');h.textContent=d.heater?'ON':'OFF';h.className=d.heater?'iv on':'iv off';hs=d.heater;
 var hm=document.getElementById('dhm');hm.textContent=d.homed?'YES':'NO';hm.className=d.homed?'iv on':'iv off';
 var aw=document.getElementById('daw');if(d.mode===4&&d.running){aw.style.display='';document.getElementById('da').textContent=d.auto_step+'/'+d.auto_total}else{aw.style.display='none'}
+document.getElementById('datv').textContent=d.auto_total_min+' min';
 for(var i=0;i<5;i++){var mb=document.getElementById('m-'+i);if(mb)mb.style.borderColor=i===d.mode?'#bb86fc':'#2a2a4a'}}
 async function sc(a,x){try{await fetch('/api/control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({action:a},x||{}))});setTimeout(fs,200)}catch(e){alert('Failed: '+e)}}
 fs();setInterval(fs,1000);
