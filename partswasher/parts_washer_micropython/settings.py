@@ -38,6 +38,7 @@ class Settings:
         "rot_speed_hz": 2400,
         "agit_ramp_hz": 200,    # Hz increment per ramp step
         "agit_ramp_ms": 15,     # ms between ramp steps
+        "agit_ramp_min_hz": 300, # Min Hz before PWM cutoff (avoid low-speed resonance)
         "agit_rev_pause": 500,  # ms pause between direction changes
         "z_accel_steps": 400,   # Steps to ramp over (higher = smoother)
         "z_start_delay": 2000,  # Starting step delay in us (higher = gentler start)

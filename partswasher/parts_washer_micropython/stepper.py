@@ -179,11 +179,14 @@ class AgitationMotor(Stepper):
 
     RAMP_STEP_HZ = 200     # Hz increment per ramp step (default)
     RAMP_INTERVAL_MS = 15   # ms between ramp steps (default)
+    RAMP_MIN_HZ = 100       # Minimum frequency before cutting PWM
 
-    def set_ramp(self, step_hz, interval_ms):
+    def set_ramp(self, step_hz, interval_ms, min_hz=None):
         """Set ramp parameters. Lower step_hz or higher interval_ms = gentler ramp."""
         self.RAMP_STEP_HZ = max(1, step_hz)
         self.RAMP_INTERVAL_MS = max(1, interval_ms)
+        if min_hz is not None:
+            self.RAMP_MIN_HZ = max(1, min_hz)
 
     def set_reverse_pause(self, pause_ms):
         """Set pause duration (ms) between direction changes."""
@@ -227,7 +230,7 @@ class AgitationMotor(Stepper):
         """Start PWM with ramp-up from current speed."""
         self._target_freq = max(1, target_freq)
         if not self._pwm_running:
-            self._current_freq = max(1, min(100, self._target_freq))
+            self._current_freq = max(1, min(self.RAMP_MIN_HZ, self._target_freq))
             self._pwm = PWM(Pin(self._step_pin_num, Pin.OUT), freq=self._current_freq, duty=512)
             self._pwm_running = True
         self._ramping = self._current_freq != self._target_freq
@@ -290,7 +293,7 @@ class AgitationMotor(Stepper):
             self.stop()
             return
         self._stopping = True
-        self._target_freq = max(1, min(100, self._current_freq))
+        self._target_freq = max(1, min(self.RAMP_MIN_HZ, self._current_freq))
         self._ramping = True
         self._last_ramp_time = time.ticks_ms()
 
@@ -303,7 +306,7 @@ class AgitationMotor(Stepper):
         self._reversing = True
         self._cruise_freq = self._target_freq
         # Ramp down to minimum speed before flipping
-        self._target_freq = max(1, min(100, self._cruise_freq))
+        self._target_freq = max(1, min(self.RAMP_MIN_HZ, self._cruise_freq))
         self._ramping = True
         self._last_ramp_time = time.ticks_ms()
 

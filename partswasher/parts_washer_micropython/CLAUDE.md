@@ -19,17 +19,17 @@
 ## Hardware
 - **MCU:** ESP32-S3-N16R8 (16MB flash, 8MB PSRAM), 44-pin board
 - **Agitation:** NEMA23 (57HBC027Y-21B0805) + TB6600 driver, 2/B half-step (400 steps/rev)
-  - **Inverted wiring:** 5V (external USB charger) on PUL+/DIR+, ESP32 GPIO on PUL-/DIR-, ENA disconnected
-  - Pins use `Pin.OPEN_DRAIN` mode (3.3V GPIO cannot drive TB6600 optocouplers directly)
+  - **Level shifting via ULN2003 Darlington module** (Elegoo starter kit): ESP32 GPIO 4 (PUL) → IN1 → OUT1 → TB6600 PUL-, GPIO 5 (DIR) → IN2 → OUT2 → TB6600 DIR-. 5V on PUL+/DIR+ from external USB charger. ENA disconnected.
+  - Pins use `Pin.OUT` (push-pull) — ULN2003 has built-in base resistors and handles 3.3V→5V level shifting
   - DIP switches for 2/B: SW1=OFF, SW2=ON, SW3=ON
-  - Uses hardware PWM via NPN transistor for step generation (duty=512, 50%)
-  - Software ramp-up/ramp-down for smooth speed transitions and graceful stops
+  - Uses hardware PWM for step generation (duty=512, 50%)
+  - Software ramp-up/ramp-down with configurable min Hz cutoff to avoid low-speed motor resonance
 - **Z-Axis:** NEMA17 + TMC2209, 1/16 microstep (3200 steps/rev), hardware PWM stepping (duty=51, ~5%)
 - **Rotation:** NEMA17 + TMC2209, 1/16 microstep (3200 steps/rev), hardware PWM stepping (duty=51, ~5%)
 - **Z-axis mechanism:** Cable winch — NEMA17 drives a cable spool (20mm core dia, 32mm flange) with 625ZZ bearing support. ~62.83mm cable per motor rev. 206mm travel (92mm lowered to 298mm raised). Braided steel wire cable runs alongside center tube to head anchor. See `3d_models/assembly_view.scad` for full mechanical design.
 - **Rotation mechanism:** Belt-driven 4-station carousel (3:1 gear ratio), home limit switch
 - **Peripherals:** 128x64 I2C OLED (0x3C, optional), piezo buzzer (PWM), heater relay (active HIGH), start/mode buttons (active LOW, pull-up)
-- **5V source:** ESP32-S3 5V pin only outputs ~1.5V; use external USB charger for TB6600 signal voltage
+- **5V source:** ESP32-S3 5V pin only outputs ~1.5V; use external USB charger for ULN2003 module and TB6600 signal voltage
 
 ## 3D Printed Parts
 4 custom parts (see `3d_models/`): motor mount (plug + platform + walls + bearing boss), cable spool, cable anchor (on washer head), motor cover. Hardware: NEMA17, 625ZZ bearing, ~400mm braided steel wire.
@@ -38,7 +38,7 @@
 
 ### Motor Control
 All three motors use **hardware PWM** for step pulse generation (zero CPU/ISR overhead):
-- **AgitationMotor**: PWM at 50% duty via NPN transistor to TB6600. Software ramp-up/ramp-down via `_update_ramp()` polling. Supports jitter (Timer callback for direction changes), continuous rotation with periodic reversal, and spin modes. Graceful stop via `ramp_down()`.
+- **AgitationMotor**: PWM at 50% duty via ULN2003 Darlington module to TB6600. Software ramp-up/ramp-down via `_update_ramp()` polling with configurable `RAMP_MIN_HZ` cutoff. Supports jitter (Timer callback for direction changes), continuous rotation with periodic reversal, and spin modes. Graceful stop via `ramp_down()`.
 - **ZAxisMotor**: PWM at 5% duty direct to TMC2209. Position estimated from elapsed time × frequency. Max error: 1 step (~0.02mm). `update()` checks completion.
 - **RotationMotor**: Same PWM approach as ZAxisMotor. Position estimated from elapsed time.
 
@@ -88,7 +88,7 @@ mpremote connect /dev/ttyACM0 fs cp main.py :main.py
 ## Conventions
 - MicroPython subset of Python 3 (no typing, limited stdlib)
 - Pin logic: TMC2209 enable = active LOW, TB6600 ENA disconnected (always enabled), limit switches = NC (LOW=not triggered, HIGH=triggered), heater relay = active HIGH
-- TB6600 step pulse: hardware PWM 50% duty via NPN transistor, TMC2209: hardware PWM 5% duty direct GPIO
+- TB6600 step pulse: hardware PWM 50% duty via ULN2003 level shifter, TMC2209: hardware PWM 5% duty direct GPIO
 - Display updates are guarded by `if not self.display: return` for headless operation
 - WiFi falls back to AP mode ("PartsWasher" / "washparts") if no saved credentials
 - All HTTP responses include `Access-Control-Allow-Origin: *` for CORS

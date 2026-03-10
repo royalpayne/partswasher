@@ -37,7 +37,8 @@ class PartsWasher:
         )
         self.agit_motor.set_ramp(
             self.settings.get('agit_ramp_hz'),
-            self.settings.get('agit_ramp_ms')
+            self.settings.get('agit_ramp_ms'),
+            self.settings.get('agit_ramp_min_hz')
         )
 
         self.z_motor = ZAxisMotor(
@@ -338,7 +339,8 @@ class PartsWasher:
         """Apply current ramp settings to agitation motor."""
         self.agit_motor.set_ramp(
             self.settings.get('agit_ramp_hz'),
-            self.settings.get('agit_ramp_ms')
+            self.settings.get('agit_ramp_ms'),
+            self.settings.get('agit_ramp_min_hz')
         )
         self.agit_motor.set_reverse_pause(
             self.settings.get('agit_rev_pause')

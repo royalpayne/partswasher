@@ -42,65 +42,9 @@ class WebServer:
         """Handle incoming HTTP request."""
         gc.collect()
         try:
-            request_line = await asyncio.wait_for(
-                reader.readline(), timeout=5
+            await asyncio.wait_for(
+                self._process_request(reader, writer), timeout=30
             )
-            if not request_line:
-                return
-
-            request_line = request_line.decode().strip()
-            parts = request_line.split(" ")
-            if len(parts) < 2:
-                return
-
-            method = parts[0]
-            path = parts[1]
-
-            # Read headers
-            content_length = 0
-            while True:
-                line = await reader.readline()
-                if line == b"\r\n" or line == b"":
-                    break
-                if line.lower().startswith(b"content-length:"):
-                    content_length = int(line.decode().split(":")[1].strip())
-
-            # Handle streaming file upload (raw body, no JSON)
-            path_only = path.split("?")[0]
-            if path_only.startswith("/api/ota/raw/") and method == "POST" and content_length > 0:
-                response = await self._handle_ota_raw_upload(
-                    path_only[13:], reader, content_length)
-            else:
-                # Read body if present (loop to handle large payloads)
-                body = None
-                if content_length > 0:
-                    chunks = []
-                    remaining = content_length
-                    while remaining > 0:
-                        chunk = await reader.read(min(remaining, 2048))
-                        if not chunk:
-                            break
-                        chunks.append(chunk)
-                        remaining -= len(chunk)
-                    body = b"".join(chunks).decode()
-
-                # Route request
-                response = await self._route(method, path, body)
-
-            # Send response
-            if isinstance(response, tuple) and response[0] == "__stream__":
-                await self._stream_page(writer, response[1])
-            elif isinstance(response, tuple):
-                header, body_content = response
-                writer.write(header.encode())
-                await writer.drain()
-                for i in range(0, len(body_content), 1024):
-                    writer.write(body_content[i:i+1024].encode())
-                    await writer.drain()
-            else:
-                writer.write(response.encode() if isinstance(response, str) else response)
-                await writer.drain()
-
         except asyncio.TimeoutError:
             pass
         except Exception as e:
@@ -108,6 +52,67 @@ class WebServer:
         finally:
             writer.close()
             await writer.wait_closed()
+
+    async def _process_request(self, reader, writer):
+        """Process a single HTTP request."""
+        request_line = await asyncio.wait_for(
+            reader.readline(), timeout=5
+        )
+        if not request_line:
+            return
+
+        request_line = request_line.decode().strip()
+        parts = request_line.split(" ")
+        if len(parts) < 2:
+            return
+
+        method = parts[0]
+        path = parts[1]
+
+        # Read headers
+        content_length = 0
+        while True:
+            line = await asyncio.wait_for(reader.readline(), timeout=5)
+            if line == b"\r\n" or line == b"":
+                break
+            if line.lower().startswith(b"content-length:"):
+                content_length = int(line.decode().split(":")[1].strip())
+
+        # Handle streaming file upload (raw body, no JSON)
+        path_only = path.split("?")[0]
+        if path_only.startswith("/api/ota/raw/") and method == "POST" and content_length > 0:
+            response = await self._handle_ota_raw_upload(
+                path_only[13:], reader, content_length)
+        else:
+            # Read body if present (loop to handle large payloads)
+            body = None
+            if content_length > 0:
+                chunks = []
+                remaining = content_length
+                while remaining > 0:
+                    chunk = await reader.read(min(remaining, 2048))
+                    if not chunk:
+                        break
+                    chunks.append(chunk)
+                    remaining -= len(chunk)
+                body = b"".join(chunks).decode()
+
+            # Route request
+            response = await self._route(method, path, body)
+
+        # Send response
+        if isinstance(response, tuple) and response[0] == "__stream__":
+            await self._stream_page(writer, response[1])
+        elif isinstance(response, tuple):
+            header, body_content = response
+            writer.write(header.encode())
+            await writer.drain()
+            for i in range(0, len(body_content), 1024):
+                writer.write(body_content[i:i+1024].encode())
+                await writer.drain()
+        else:
+            writer.write(response.encode() if isinstance(response, str) else response)
+            await writer.drain()
 
     async def _route(self, method, path, body):
         """Route request to appropriate handler."""
@@ -388,14 +393,14 @@ class WebServer:
         await writer.drain()
 
     def _main_parts(self):
-        return [self._css, self._main_html, self._main_js]
+        return [self._css1, self._css2, self._main_html, self._main_js]
 
     def _config_parts(self):
-        return [self._css, self._config_html, self._config_js]
+        return [self._css1, self._css2, self._config_html1, self._config_html2, self._config_js]
 
-    # ============== CSS (shared) ==============
+    # ============== CSS (inline, split for memory) ==============
 
-    def _css(self):
+    def _css1(self):
         return '''<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Parts Washer</title><style>
@@ -426,8 +431,10 @@ section:hover{border-color:#2a2a5a;box-shadow:0 4px 20px rgba(108,99,255,.08)}
 @keyframes dp{0%{transform:scale(1)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
 @keyframes tg{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 @keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
-@keyframes gp{0%,100%{box-shadow:0 0 8px rgba(187,134,252,.4)}50%{box-shadow:0 0 20px rgba(187,134,252,.8),0 0 40px rgba(108,99,255,.3)}}
-.car{display:flex;align-items:center;justify-content:center;gap:4px;padding:12px 0}
+@keyframes gp{0%,100%{box-shadow:0 0 8px rgba(187,134,252,.4)}50%{box-shadow:0 0 20px rgba(187,134,252,.8),0 0 40px rgba(108,99,255,.3)}}'''
+
+    def _css2(self):
+        return '''.car{display:flex;align-items:center;justify-content:center;gap:4px;padding:12px 0}
 .ci{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 12px;border-radius:10px;background:#1a1a30;transition:all .3s;min-width:60px}
 .ci span{font-size:.65em;color:#555;text-transform:uppercase;letter-spacing:1px;transition:color .3s}
 .cd{width:14px;height:14px;border-radius:50%;background:#2a2a40;border:2px solid #333;transition:all .3s}
@@ -550,12 +557,14 @@ var aw=document.getElementById('daw');if(d.mode===4&&d.running){aw.style.display
 document.getElementById('datv').textContent=d.auto_total_min+' min';
 for(var i=0;i<5;i++){var mb=document.getElementById('m-'+i);if(mb)mb.style.borderColor=i===d.mode?'#bb86fc':'#2a2a4a'}}
 async function sc(a,x){try{await fetch('/api/control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({action:a},x||{}))});setTimeout(fs,200)}catch(e){alert('Failed: '+e)}}
-fs();setInterval(fs,1000);
+var pi=setInterval(fs,1000);fs();
+window.addEventListener('beforeunload',function(){clearInterval(pi)});
+document.querySelectorAll('a[href]').forEach(function(a){a.addEventListener('click',function(){clearInterval(pi)})});
 </script></html>'''
 
     # ============== CONFIG PAGE ==============
 
-    def _config_html(self):
+    def _config_html1(self):
         return '''
 <header><h1>Parts Washer Config</h1></header>
 <div class="nav"><a href="/">Dashboard</a></div>
@@ -577,14 +586,17 @@ fs();setInterval(fs,1000);
 <section><h2>Agitation Ramp</h2><div class="sg">
 <label title="Hz added per ramp step. Lower=gentler acceleration">Ramp Hz/step:</label><input type="number" id="agit_ramp_hz" min="10" max="1000" step="10" title="Frequency increment per ramp step. Lower=smoother ramp-up/down">
 <label title="Time between ramp steps. Higher=slower acceleration">Ramp ms/step:</label><input type="number" id="agit_ramp_ms" min="1" max="100" title="Milliseconds between each ramp step. Higher=gentler">
+<label title="Minimum frequency before PWM cuts off. Higher=less low-speed noise">Min Hz:</label><input type="number" id="agit_ramp_min_hz" min="50" max="1000" step="50" title="PWM stops at this frequency during ramp-down. Higher=less motor resonance noise">
 <label title="Pause after ramp-down before reversing direction">Rev Pause (ms):</label><input type="number" id="agit_rev_pause" min="0" max="5000" step="50" title="Dwell time at zero speed between direction changes">
 </div></section>
 <section><h2>Z-Axis Smoothness</h2><div class="sg">
 <label title="Steps over which to accelerate/decelerate. Higher=smoother but longer ramp">Accel Steps:</label><input type="number" id="z_accel_steps" min="50" max="5000" step="50" title="Ramp length in steps. Try 800-1600 for smooth motion. Default 400">
 <label title="Initial step delay in microseconds. Higher=slower start, less jerk">Start Delay (us):</label><input type="number" id="z_start_delay" min="500" max="10000" step="100" title="Step delay at start of ramp. Higher=gentler start. Default 2000">
 <label title="Steps between speed changes during ramp. Lower=finer speed transitions">Ramp Interval:</label><input type="number" id="z_ramp_interval" min="8" max="64" title="ISR updates freq every N steps. Lower=smoother. Min 8 to avoid lockup. Default 16">
-</div></section>
-<section><h2>Z Positions (mm)</h2><div class="sg">
+</div></section>'''
+
+    def _config_html2(self):
+        return '''<section><h2>Z Positions (mm)</h2><div class="sg">
 <label>Home (Top):</label><div><input type="number" id="z_pos_home" step="0.1" min="0" max="250" style="width:80px"> <button onclick="szc('z_pos_home')" class="btn bs">Set Current</button></div>
 <label>Spin (Mid):</label><div><input type="number" id="z_pos_spin" step="0.1" min="0" max="250" style="width:80px"> <button onclick="szc('z_pos_spin')" class="btn bs">Set Current</button></div>
 <label>Wash (Bottom):</label><div><input type="number" id="z_pos_wash" step="0.1" min="0" max="250" style="width:80px"> <button onclick="szc('z_pos_wash')" class="btn bs">Set Current</button></div>
