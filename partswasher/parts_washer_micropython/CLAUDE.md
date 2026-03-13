@@ -31,8 +31,25 @@
 - **Peripherals:** 128x64 I2C OLED (0x3C, optional), piezo buzzer (PWM), heater relay (active HIGH), start/mode buttons (active LOW, pull-up)
 - **5V source:** ESP32-S3 5V pin only outputs ~1.5V; use external USB charger for ULN2003 module and TB6600 signal voltage
 
-## 3D Printed Parts
-4 custom parts (see `3d_models/`): motor mount (plug + platform + walls + bearing boss), cable spool, cable anchor (on washer head), motor cover. Hardware: NEMA17, 625ZZ bearing, ~400mm braided steel wire.
+## 3D Printed Parts & Model
+5 custom parts (see `3d_models/`): motor mount (plug + platform + walls + bearing boss), cable spool, cable anchor (on agitator mount), motor cover, agitator mount. Hardware: NEMA17, 625ZZ bearing, ~400mm braided steel wire.
+
+### Assembly Model (`3d_models/base_bottom.scad`)
+Full parametric OpenSCAD model of the complete parts washer:
+- **Base**: Rounded concave taper (sinusoidal curve, 20 steps) from narrow bottom to wide shelf
+- **Carousel**: Round plate with gear ring, 4 station cutouts, radial dividers
+- **Jars**: 3.75" square with 8mm rounded corners, canted 45° on carousel, tapered to 3.75" round mouth with 4" round screw lid, rounded bottom edges
+- **Jar brackets**: 2 opposing L-shaped corner brackets per jar with M3 vertical mounting holes
+- **Heater shroud**: Cylindrical with continuous inner lip/flange at base, 4x M3 mounting holes
+- **Agitator mount**: ABS plastic sleeve on center shaft + contoured arm + 1/2" aluminum plate over station 0 jar. Hull-based smooth transitions between sleeve, arm, and plate
+- **Agitator assembly**: NEMA23 motor (YEJMKJ 57HBC027Y-21B0805, 56.3mm face) + RATTMMOTOR bracket (54.7mm flange, 47x47mm body) centered on agitator mount plate
+- **Cable anchor**: Brake cable barrel pocket boss on top of sleeve, M3 heat-set insert mounting, integrated flanges blending into sleeve
+- **Z-axis cable winch**: Imported assembly (NEMA17 + spool + bearing), rotated 90° so spool is perpendicular to agitator motor
+
+### OpenSCAD Conventions
+- **Variable scoping**: OpenSCAD variables are global, last assignment wins — use unique prefixes (`n23_`, `z_`, `m3_`) to avoid collisions
+- **Module**: `rounded_square_extrude(size, r, h)` for square jar geometry
+- Station angles: `[0, 90, 180, 270]` for WASH, RINSE1, RINSE2, HEATER
 
 ## Key Patterns
 

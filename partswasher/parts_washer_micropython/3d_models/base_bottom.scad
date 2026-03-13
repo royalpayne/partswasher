@@ -12,6 +12,13 @@
 
 $fn = 80;
 
+// Rounded square extrusion — used for square jars
+module rounded_square_extrude(size, r, h) {
+    linear_extrude(h)
+        offset(r=r)
+        square([size - 2*r, size - 2*r], center=true);
+}
+
 // === Overall dimensions ===
 top_dia = 330;              // ~13" outer diameter at shelf level
 bottom_dia = 310;           // reduced taper — closer to top_dia for jar clearance
@@ -29,8 +36,10 @@ center_tube_height = 89;    // full height
 
 // === Station layout (4 stations, 90 deg apart) ===
 num_stations = 4;
-jar_dia = 121;              // mason jar 4.75" (120.65mm)
+jar_size = 95.25;           // square jar 3.75" per side
+jar_corner_r = 8;           // corner rounding radius
 jar_center_r = 90;          // far enough that 45°-rotated jars don't overlap adjacent stations
+jar_cant = 45;              // rotate jars 45° so corners point radially — fits round plate better
 station_angles = [0, 90, 180, 270];  // WASH, RINSE1, RINSE2, HEATER
 
 // === Divider walls ===
@@ -40,7 +49,7 @@ divider_length = 75;        // radial length of divider
 divider_inner_r = 45;       // start radius
 
 // === Heater station shroud (station 3 = 270 deg) ===
-shroud_dia = 121;           // cylindrical shroud inner dia — matches jar diameter
+shroud_dia = jar_size * 1.05;  // cylindrical shroud inner dia — clears square jar diagonal
 shroud_height = 140;        // 5.5 inches
 shroud_wall = 2;
 
@@ -87,18 +96,37 @@ module oval(length, width) {
 
 module tapered_shell() {
     // Outer tapered wall: wide at top (shelf), narrow at bottom
+    // Smooth concave curve instead of straight taper
+    taper_steps = 20;
+    top_r = top_dia / 2;
+    bot_r = bottom_dia / 2;
     difference() {
-        hull() {
-            translate([0, 0, control_panel_height])
-                cylinder(d=top_dia, h=0.1);
-            translate([0, 0, 0])
-                cylinder(d=bottom_dia, h=0.1);
+        // Outer curved surface — stack of hull'd ring slices
+        for (s = [0 : taper_steps - 1]) {
+            t0 = s / taper_steps;
+            t1 = (s + 1) / taper_steps;
+            // Sinusoidal easing — concave curve (most taper near bottom)
+            e0 = sin(t0 * 90);
+            e1 = sin(t1 * 90);
+            hull() {
+                translate([0, 0, t0 * control_panel_height])
+                    cylinder(d=(bot_r + (top_r - bot_r) * e0) * 2, h=0.1);
+                translate([0, 0, t1 * control_panel_height])
+                    cylinder(d=(bot_r + (top_r - bot_r) * e1) * 2, h=0.1);
+            }
         }
-        hull() {
-            translate([0, 0, control_panel_height])
-                cylinder(d=top_dia - wall_thickness*2, h=0.1);
-            translate([0, 0, -0.1])
-                cylinder(d=bottom_dia - wall_thickness*2, h=0.1);
+        // Inner curved surface (same curve, offset by wall thickness)
+        for (s = [0 : taper_steps - 1]) {
+            t0 = s / taper_steps;
+            t1 = (s + 1) / taper_steps;
+            e0 = sin(t0 * 90);
+            e1 = sin(t1 * 90);
+            hull() {
+                translate([0, 0, t0 * control_panel_height - 0.05])
+                    cylinder(d=(bot_r - wall_thickness + (top_r - bot_r) * e0) * 2, h=0.1);
+                translate([0, 0, t1 * control_panel_height + 0.05])
+                    cylinder(d=(bot_r - wall_thickness + (top_r - bot_r) * e1) * 2, h=0.1);
+            }
         }
     }
 }
@@ -230,19 +258,61 @@ module glass_jars() {
     // Simplified glass jars in 3 stations (not heater)
     jar_height = 100;
     jar_wall = 3;
+    _base_r = 10;
+    _body_h = 45;
+    _taper_h = 25;
+    _mouth_h = 10;
     for (i = [0:2]) {
         rotate([0, 0, station_angles[i]])
-        translate([jar_center_r, 0, control_panel_height + shelf_thickness]) {
+        translate([jar_center_r, 0, control_panel_height + shelf_thickness])
+        rotate([0, 0, jar_cant]) {
             color("LightBlue", 0.3)
             difference() {
-                cylinder(d=jar_dia, h=jar_height);
-                translate([0, 0, 3])
-                    cylinder(d=jar_dia - jar_wall*2, h=jar_height);
+                union() {
+                    // Bottom with rounded edges — flat base, curves up to sides
+                    hull() {
+                        rounded_square_extrude(jar_size - _base_r*2, jar_corner_r, 0.1);
+                        translate([0, 0, _base_r])
+                            rounded_square_extrude(jar_size, jar_corner_r, 0.1);
+                    }
+                    translate([0, 0, _base_r])
+                        rounded_square_extrude(jar_size, jar_corner_r, _body_h);
+                    translate([0, 0, _base_r + _body_h])
+                        hull() {
+                            linear_extrude(0.1)
+                                offset(r=jar_corner_r)
+                                square([jar_size - 2*jar_corner_r, jar_size - 2*jar_corner_r], center=true);
+                            translate([0, 0, _taper_h])
+                                cylinder(d=jar_mouth_dia, h=0.1);
+                        }
+                    translate([0, 0, _base_r + _body_h + _taper_h])
+                        cylinder(d=jar_mouth_dia, h=_mouth_h);
+                }
+                translate([0, 0, jar_wall])
+                union() {
+                    hull() {
+                        rounded_square_extrude(jar_size - _base_r*2 - jar_wall*2, jar_corner_r, 0.1);
+                        translate([0, 0, _base_r])
+                            rounded_square_extrude(jar_size - jar_wall*2, jar_corner_r, 0.1);
+                    }
+                    translate([0, 0, _base_r])
+                        rounded_square_extrude(jar_size - jar_wall*2, jar_corner_r, _body_h);
+                    translate([0, 0, _base_r + _body_h])
+                        hull() {
+                            linear_extrude(0.1)
+                                offset(r=jar_corner_r)
+                                square([jar_size - jar_wall*2 - 2*jar_corner_r, jar_size - jar_wall*2 - 2*jar_corner_r], center=true);
+                            translate([0, 0, _taper_h])
+                                cylinder(d=jar_mouth_dia - jar_wall*2, h=0.1);
+                        }
+                    translate([0, 0, _base_r + _body_h + _taper_h])
+                        cylinder(d=jar_mouth_dia - jar_wall*2, h=_mouth_h + 1);
+                }
             }
-            // Black lid
+            // Round screw lid
             color("DimGray")
-            translate([0, 0, jar_height])
-                cylinder(d=jar_dia + 4, h=8);
+            translate([0, 0, _base_r + _body_h + _taper_h + _mouth_h])
+                cylinder(d=jar_lid_dia, h=jar_lid_h);
         }
     }
 }
@@ -547,67 +617,178 @@ difference() {
         cylinder(d=30, h=carousel_h + gear_ring_h + 0.2);
 }
 
-// 3 jar brackets — arc-shaped cradles around base of each jar (not heater)
+// 3 jar brackets — corner cradles around base of each square jar (not heater)
 bracket_h = 25;             // bracket wall height
 bracket_wall = 2;           // bracket thickness
-bracket_arc = 120;          // degrees of arc on each side of jar center
 bracket_z = carousel_top_z + carousel_h;  // directly on top of plate
-leg_w = 10;                 // mounting leg width
-leg_t = bracket_wall;       // leg thickness (same as bracket wall)
-leg_h = 0;                  // no gap — bracket sits on plate
+bracket_lip = 20;           // how far each L-leg extends along jar side
+bracket_gap = 1;            // clearance around jar
+
 color("LightGray")
 for (i = [0:2]) {
     rotate([0, 0, station_angles[i]])
-    translate([jar_center_r, 0, 0]) {
-        // Bracket arcs
-        translate([0, 0, bracket_z])
-        difference() {
-            cylinder(d=jar_dia + bracket_wall*2 + 2, h=bracket_h);
-            // Hollow out center
-            translate([0, 0, -0.1])
-                cylinder(d=jar_dia + 2, h=bracket_h + 0.2);
-            // Cut away to leave two opposing arc segments (rotated 180° around jar)
-            for (cut_a = [90, 270])
-                rotate([0, 0, cut_a + bracket_arc/2])
-                translate([0, 0, -0.1])
-                    linear_extrude(bracket_h + 0.2)
-                    polygon([
-                        [0, 0],
-                        [jar_dia, 0],
-                        [jar_dia * cos(180 - bracket_arc), jar_dia * sin(180 - bracket_arc)],
-                    ]);
-        }
-        // (no legs needed — bracket sits directly on plate)
+    translate([jar_center_r, 0, bracket_z])
+    rotate([0, 0, jar_cant]) {
+        // 2 opposing corner brackets hugging jar edges
+        for (ca = [0, 180])
+            rotate([0, 0, ca])
+            translate([jar_size/2 + bracket_gap, jar_size/2 + bracket_gap, 0]) {
+                // Leg along +X face
+                translate([0, -bracket_lip, 0])
+                    cube([bracket_wall, bracket_lip, bracket_h]);
+                // Leg along +Y face
+                translate([-bracket_lip, 0, 0])
+                    cube([bracket_lip, bracket_wall, bracket_h]);
+                // Corner fillet — small rounded block at the corner
+                cylinder(r=bracket_wall, h=bracket_h);
+                // Mounting ear at end of +X leg — flat tab, M3 vertical from top
+                translate([0, -bracket_lip, 0])
+                difference() {
+                    hull() {
+                        cube([bracket_wall, bracket_wall, bracket_h]);
+                        translate([bracket_wall + 4, bracket_wall/2, 0])
+                            cylinder(d=8, h=bracket_h);
+                    }
+                    // M3 vertical through-hole
+                    translate([bracket_wall + 4, bracket_wall/2, -0.1])
+                        cylinder(d=3.2, h=bracket_h + 0.2);
+                    // M3 socket head counterbore from top
+                    translate([bracket_wall + 4, bracket_wall/2, bracket_h - 3])
+                        cylinder(d=5.7, h=3.1);
+                }
+                // Mounting ear at end of +Y leg — flat tab, M3 vertical from top
+                translate([-bracket_lip, 0, 0])
+                difference() {
+                    hull() {
+                        cube([bracket_wall, bracket_wall, bracket_h]);
+                        translate([bracket_wall/2, bracket_wall + 4, 0])
+                            cylinder(d=8, h=bracket_h);
+                    }
+                    // M3 vertical through-hole
+                    translate([bracket_wall/2, bracket_wall + 4, -0.1])
+                        cylinder(d=3.2, h=bracket_h + 0.2);
+                    // M3 socket head counterbore from top
+                    translate([bracket_wall/2, bracket_wall + 4, bracket_h - 3])
+                        cylinder(d=5.7, h=3.1);
+                }
+            }
     }
 }
 
 // Glass jars in 3 stations (not heater) — on top of carousel
+// Square body tapers to round mouth with round screw lid
 jar_wall = 3;
-jar_height = 165;           // 6.5 inches
+jar_height = 165;           // 6.5 inches total
+jar_base_r = 12;            // bottom corner rounding radius
+jar_body_h = 108;           // square body portion (above rounded base)
+jar_taper_h = 35;           // taper from square to round
+jar_mouth_h = 10;           // round neck/mouth
+jar_mouth_dia = 95.25;      // mouth O.D. 3.75 inches
+jar_lid_dia = 101.6;        // lid outer diameter 4 inches
+jar_lid_h = 12;             // lid height
+
 for (i = [0:2]) {
     rotate([0, 0, station_angles[i]])
-    translate([jar_center_r, 0, carousel_top_z + carousel_h]) {
+    translate([jar_center_r, 0, carousel_top_z + carousel_h])
+    rotate([0, 0, jar_cant]) {
         color("LightBlue", 0.3)
         difference() {
-            cylinder(d=jar_dia, h=jar_height);
-            translate([0, 0, 3])
-                cylinder(d=jar_dia - jar_wall*2, h=jar_height);
+            union() {
+                // Bottom with rounded edges — flat base, curves up to sides
+                hull() {
+                    // Flat bottom (slightly smaller)
+                    rounded_square_extrude(jar_size - jar_base_r*2, jar_corner_r, 0.1);
+                    // Full size at rounding height
+                    translate([0, 0, jar_base_r])
+                        rounded_square_extrude(jar_size, jar_corner_r, 0.1);
+                }
+                // Square body (above rounded base)
+                translate([0, 0, jar_base_r])
+                    rounded_square_extrude(jar_size, jar_corner_r, jar_body_h);
+                // Taper from square to round mouth
+                translate([0, 0, jar_base_r + jar_body_h])
+                    hull() {
+                        linear_extrude(0.1)
+                            offset(r=jar_corner_r)
+                            square([jar_size - 2*jar_corner_r, jar_size - 2*jar_corner_r], center=true);
+                        translate([0, 0, jar_taper_h])
+                            cylinder(d=jar_mouth_dia, h=0.1);
+                    }
+                // Round mouth/neck
+                translate([0, 0, jar_base_r + jar_body_h + jar_taper_h])
+                    cylinder(d=jar_mouth_dia, h=jar_mouth_h);
+            }
+            // Hollow interior
+            translate([0, 0, jar_wall])
+            union() {
+                // Inner rounded bottom
+                hull() {
+                    rounded_square_extrude(jar_size - jar_base_r*2 - jar_wall*2, jar_corner_r, 0.1);
+                    translate([0, 0, jar_base_r])
+                        rounded_square_extrude(jar_size - jar_wall*2, jar_corner_r, 0.1);
+                }
+                translate([0, 0, jar_base_r])
+                    rounded_square_extrude(jar_size - jar_wall*2, jar_corner_r, jar_body_h);
+                translate([0, 0, jar_base_r + jar_body_h])
+                    hull() {
+                        linear_extrude(0.1)
+                            offset(r=jar_corner_r)
+                            square([jar_size - jar_wall*2 - 2*jar_corner_r, jar_size - jar_wall*2 - 2*jar_corner_r], center=true);
+                        translate([0, 0, jar_taper_h])
+                            cylinder(d=jar_mouth_dia - jar_wall*2, h=0.1);
+                    }
+                translate([0, 0, jar_base_r + jar_body_h + jar_taper_h])
+                    cylinder(d=jar_mouth_dia - jar_wall*2, h=jar_mouth_h + 1);
+            }
         }
-        // Black lid
+        // Round screw lid
         color("DimGray")
-        translate([0, 0, jar_height])
-            cylinder(d=jar_dia + 4, h=8);
+        translate([0, 0, jar_body_h + jar_taper_h + jar_mouth_h]) {
+            // Lid body
+            cylinder(d=jar_lid_dia, h=jar_lid_h);
+            // Grip ridges on lid edge
+            difference() {
+                cylinder(d=jar_lid_dia, h=jar_lid_h);
+                translate([0, 0, -0.1])
+                    cylinder(d=jar_lid_dia - 3, h=jar_lid_h + 0.2);
+            }
+        }
     }
 }
 
-// Heater shroud at station 3 (270 deg) — sits on carousel at cutout
+// Heater shroud at station 3 (270 deg) — sits on top of plate
+shroud_lip_h = 4;               // lip flange thickness
+shroud_lip_w = 10;              // lip extends inward from shroud wall
+shroud_bolt_r = shroud_dia/2 - shroud_lip_w/2;  // bolt circle radius (centered in lip)
+
 rotate([0, 0, station_angles[3]])
 translate([jar_center_r, 0, carousel_top_z + carousel_h]) {
     color("DarkGray")
     difference() {
-        cylinder(d=shroud_dia + shroud_wall*2, h=shroud_height);
-        translate([0, 0, -0.1])
-            cylinder(d=shroud_dia, h=shroud_height + 0.2);
+        union() {
+            // Shroud wall
+            difference() {
+                cylinder(d=shroud_dia + shroud_wall*2, h=shroud_height);
+                translate([0, 0, -0.1])
+                    cylinder(d=shroud_dia, h=shroud_height + 0.2);
+            }
+            // Continuous inner lip at base
+            difference() {
+                cylinder(d=shroud_dia + shroud_wall*2, h=shroud_lip_h);
+                translate([0, 0, -0.1])
+                    cylinder(d=shroud_dia - shroud_lip_w*2, h=shroud_lip_h + 0.2);
+            }
+        }
+        // 4 M3 mounting holes through lip, 90° apart
+        for (ea = [0, 90, 180, 270])
+            rotate([0, 0, ea]) {
+                // M3 through-hole
+                translate([shroud_bolt_r, 0, -0.1])
+                    cylinder(d=3.2, h=shroud_lip_h + 0.2);
+                // M3 socket head counterbore from top
+                translate([shroud_bolt_r, 0, shroud_lip_h - 3])
+                    cylinder(d=5.7, h=3.1);
+            }
     }
 }
 
@@ -718,109 +899,125 @@ difference() {
     // --- Plate center bore (agitation shaft) ---
     translate([jar_center_r, 0, head_z - 0.1])
         cylinder(d=10, h=head_plate_h + 0.2);
+
+    // --- M3 heat-set insert pockets for cable anchor ---
+    // Standard M3 heat-set insert: ~4.0mm OD, ~4.0mm deep
+    m3_insert_od = 4.0;          // Insert outer diameter (press-fit hole)
+    m3_insert_depth = 4.0;       // Insert length
+
+    rotate([0, 0, -station_angles[0]])
+    translate([cable_anchor_r, 0, 0]) {
+        // Insert pockets — pressed in from top of sleeve
+        translate([0, m3_bolt_spread, head_z - m3_insert_depth])
+            cylinder(d=m3_insert_od, h=m3_insert_depth + 0.1);
+        translate([0, -m3_bolt_spread, head_z - m3_insert_depth])
+            cylinder(d=m3_insert_od, h=m3_insert_depth + 0.1);
+    }
+
 }
 
-// ==========================================
-// MOTOR MOUNT ASSEMBLY (at top of center tube)
-// ==========================================
-// NEMA23 motor mount bracket + NEMA23 motor
+// Z-axis cable anchor — brake cable barrel pocket on top of sleeve
+// Bicycle brake cable: 1.17mm wire, 4mm x 4.6mm barrel end
+// Positioned directly above cable fairlead (which is at +X after 90° Z-axis rotation)
+cable_d = 1.17;              // Braided steel cable diameter
+barrel_d = 4.0;              // Barrel/nipple diameter
+barrel_h = 4.6;              // Barrel height
+barrel_clear = 0.3;          // Fit clearance
 
-// --- NEMA23 Motor Mount Bracket ---
-// From dimensioned drawing: right-angle aluminum bracket
-bracket_flange = 54.7;       // Top flange square dimension
-bracket_bolt_spacing = 47;   // Bolt pattern center-to-center
-bracket_bolt_d = 5.5;        // Bolt hole diameter
-bracket_pilot_d = 42;        // Top face pilot bore
-bracket_bore_d = 29;         // Through bore diameter
-bracket_body_h = 31.77;      // Body height below flange
-bracket_body_w = 40;         // Body width/depth
-bracket_step_h = 5;          // Bottom step/flange height
-bracket_step_bore_d = 33;    // Bottom counterbore diameter
-bracket_front_bore_d = 29;   // Front face bore
-bracket_total_h = bracket_body_h + bracket_step_h;  // ~36.77mm
+// Cable fairlead position after 90° rotation: [center_tube_dia/2 + 1, 0]
+cable_anchor_r = center_tube_dia/2 + 1;  // ~17mm from center, directly above fairlead
+anchor_boss_d = 12;          // Boss diameter around barrel pocket
+anchor_boss_h = 8;           // Boss height above sleeve top
 
-bracket_z = shaft_top;  // Sits on top of center shaft
+// M3 bolt mounting
+m3_bolt_d = 3.0;                // M3 bolt shaft diameter
+m3_clear = 0.2;                 // Clearance for through-hole
+m3_head_d = 5.5;                // M3 socket head cap diameter
+m3_head_h = 3.0;                // M3 socket head height
+m3_bolt_spread = 10;            // Bolt center distance from boss center (along Y)
 
-// Bracket body (centered on shaft)
-color([0.75, 0.75, 0.78])  // Machined aluminum
-translate([0, 0, bracket_z]) {
-    difference() {
-        union() {
-            // Top flange plate
-            translate([-bracket_flange/2, -bracket_flange/2, bracket_body_h])
-                cube([bracket_flange, bracket_flange, bracket_step_h]);
+// Integrated cable anchor — blends into agitator mount sleeve top
+// Single smooth body: boss + tapered flanges flowing into sleeve surface
+color([0.25, 0.25, 0.27])
+translate([cable_anchor_r, 0, head_z])
+difference() {
+    union() {
+        // Central barrel boss with slight taper
+        cylinder(d1=anchor_boss_d + 1, d2=anchor_boss_d, h=anchor_boss_h);
 
-            // Main body block
-            translate([-bracket_body_w/2, -bracket_body_w/2, 0])
-                cube([bracket_body_w, bracket_body_w, bracket_body_h]);
+        // Smooth integrated flanges — hull from boss base to low bolt pads
+        // These blend down to the sleeve surface (z=0) for a seamless look
+        // +Y flange
+        hull() {
+            // Boss root
+            translate([0, 0, 0])
+                cylinder(d=anchor_boss_d, h=0.5);
+            // Bolt pad (low profile, merges with sleeve)
+            translate([0, m3_bolt_spread, 0])
+                cylinder(d=m3_head_d + 4, h=0.5);
+        }
+        hull() {
+            // Boss mid-height
+            translate([0, 0, 0])
+                cylinder(d=anchor_boss_d, h=anchor_boss_h * 0.4);
+            // Bolt pad tapers up
+            translate([0, m3_bolt_spread, 0])
+                cylinder(d=m3_head_d + 3, h=anchor_boss_h * 0.35);
+        }
+        // -Y flange (mirror)
+        hull() {
+            translate([0, 0, 0])
+                cylinder(d=anchor_boss_d, h=0.5);
+            translate([0, -m3_bolt_spread, 0])
+                cylinder(d=m3_head_d + 4, h=0.5);
+        }
+        hull() {
+            translate([0, 0, 0])
+                cylinder(d=anchor_boss_d, h=anchor_boss_h * 0.4);
+            translate([0, -m3_bolt_spread, 0])
+                cylinder(d=m3_head_d + 3, h=anchor_boss_h * 0.35);
         }
 
-        // Through bore (vertical, for motor shaft)
-        cylinder(d=bracket_bore_d, h=bracket_total_h);
-
-        // Top face pilot bore (shallow recess in flange)
-        translate([0, 0, bracket_body_h])
-            cylinder(d=bracket_pilot_d, h=bracket_step_h);
-
-        // Bottom counterbore
-        translate([0, 0, -0.1])
-            cylinder(d=bracket_step_bore_d, h=bracket_step_h + 0.1);
-
-        // Front face bore (for output/coupling access)
-        translate([0, -bracket_body_w/2 - 0.1, bracket_body_h/2])
-            rotate([-90, 0, 0])
-            cylinder(d=bracket_front_bore_d, h=bracket_body_w + 0.2);
-
-        // 4 corner bolt holes (through flange)
-        for (x = [-1, 1]) for (y = [-1, 1])
-            translate([x * bracket_bolt_spacing/2,
-                       y * bracket_bolt_spacing/2,
-                       bracket_body_h])
-                cylinder(d=bracket_bolt_d, h=bracket_step_h + 0.1);
-
-        // 4 corner bolt holes (through body)
-        for (x = [-1, 1]) for (y = [-1, 1])
-            translate([x * bracket_bolt_spacing/2,
-                       y * bracket_bolt_spacing/2,
-                       -0.1])
-                cylinder(d=bracket_bolt_d, h=bracket_body_h + 0.2);
+        // Thin base flange connecting everything — sits flush on sleeve
+        hull() {
+            translate([0, m3_bolt_spread, 0])
+                cylinder(d=m3_head_d + 4, h=1.5);
+            cylinder(d=anchor_boss_d + 1, h=1.5);
+            translate([0, -m3_bolt_spread, 0])
+                cylinder(d=m3_head_d + 4, h=1.5);
+        }
     }
+
+    // Barrel pocket (open from top, barrel drops in)
+    translate([0, 0, anchor_boss_h - barrel_h - 0.5])
+        cylinder(d=barrel_d + barrel_clear, h=barrel_h + 0.6);
+
+    // Cable exit hole (through bottom)
+    translate([0, 0, -0.1])
+        cylinder(d=cable_d + 0.5, h=anchor_boss_h + 0.2);
+
+    // M3 through-holes (+Y) — bolt threads into heat-set insert in sleeve
+    translate([0, m3_bolt_spread, -0.1])
+        cylinder(d=m3_bolt_d + m3_clear, h=anchor_boss_h * 0.4 + 0.2);
+    // Socket head counterbore (+Y)
+    translate([0, m3_bolt_spread, anchor_boss_h * 0.35 - m3_head_h])
+        cylinder(d=m3_head_d + m3_clear, h=m3_head_h + 0.1);
+
+    // M3 through-holes (-Y)
+    translate([0, -m3_bolt_spread, -0.1])
+        cylinder(d=m3_bolt_d + m3_clear, h=anchor_boss_h * 0.4 + 0.2);
+    // Socket head counterbore (-Y)
+    translate([0, -m3_bolt_spread, anchor_boss_h * 0.35 - m3_head_h])
+        cylinder(d=m3_head_d + m3_clear, h=m3_head_h + 0.1);
 }
-
-// --- NEMA23 Motor ---
-// Mounted on top of bracket flange, shaft pointing down through bore
-nema23_body_dia = 57;        // NEMA23 round body (56.4mm nom)
-nema23_body_len = 56;        // Motor body length
-nema23_shaft_d = 6.35;       // 1/4" shaft
-nema23_shaft_len = 24;       // Shaft protrusion
-nema23_pilot_d = 38.1;       // Pilot/register diameter
-nema23_pilot_h = 1.6;        // Pilot protrusion
-
-motor_z = bracket_z + bracket_total_h;  // Motor sits on top of flange
-
-// Motor body (dark gray, octagonal approximated as cylinder)
-color([0.2, 0.2, 0.2])
-translate([0, 0, motor_z]) {
-    // Pilot ring
-    cylinder(d=nema23_pilot_d, h=nema23_pilot_h);
-    // Body
-    translate([0, 0, nema23_pilot_h])
-        cylinder(d=nema23_body_dia, h=nema23_body_len, $fn=8);
-    // Rear cap
-    translate([0, 0, nema23_pilot_h + nema23_body_len])
-        cylinder(d=nema23_body_dia - 4, h=3);
-}
-
-// Motor shaft (extends down through bracket bore)
-color("Silver")
-translate([0, 0, motor_z - nema23_shaft_len])
-    cylinder(d=nema23_shaft_d, h=nema23_shaft_len);
 
 // ==========================================
 // Z-AXIS CABLE WINCH ASSEMBLY (at top of center tube)
 // ==========================================
 // From top_motor_mount.scad, cable_spool.scad, motor_cover.scad
 // NEMA17 motor drives cable spool to raise/lower washer head
+// Rotated 90° so spool axis is perpendicular to agitator motor
+rotate([0, 0, 90]) {
 
 // Mount geometry
 z_plug_len = 50;
@@ -985,9 +1182,10 @@ color("DarkGray")
 hull() {
     translate([0, cable_guide_y, z_plat_z + z_platform_thick + 10])
         sphere(d=1.5);
-    translate([0, cable_guide_y, head_z + head_collar_h/2])
+    translate([0, cable_guide_y, head_z])
         sphere(d=1.5);
 }
+} // end rotate 180° for Z-axis assembly
 
 // ==========================================
 // AGITATOR ASSEMBLY (NEMA23 + RATTMMOTOR bracket)
