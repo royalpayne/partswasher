@@ -616,44 +616,108 @@ color("Silver")
 translate([0, 0, carousel_top_z])
     cylinder(d=center_tube_dia - 1, h=(jar_height + carousel_h + 20) * 2);
 
-// Washer head — slides on center shaft, arm extends to basket
-head_collar_od = center_tube_dia + 10;  // collar around center tube
-head_collar_h = 63.5;                    // collar height
-head_arm_dia = 10;                       // arm tube diameter
-head_arm_length = jar_center_r - head_collar_od/2 - 5;  // reaches to jar center
-basket_dia = jar_dia - 20;              // basket fits inside jar
-basket_h = jar_height - 30;            // shorter than jar
-basket_wall = 2;
+// Agitator mount — sleeve on shaft, arm extends to motor plate over jar
+head_plate_dia = 100;         // ~4" aluminum disc
+head_plate_h = 12.7;          // 1/2" thick aluminum plate
 shaft_height = (jar_height + carousel_h + 20) * 2;
 shaft_top = carousel_top_z + shaft_height;
-head_z = shaft_top - head_collar_h;  // top of shaft
 
-color("OrangeRed")
-translate([0, 0, head_z]) {
-    // Collar (rides on center tube)
-    difference() {
-        cylinder(d=head_collar_od, h=head_collar_h);
-        translate([0, 0, -0.1])
-            cylinder(d=center_tube_dia + 0.5, h=head_collar_h + 0.2);
-    }
+// Shaft clamp bracket (3" tall, clamped around center tube near top)
+clamp_h = 76.2;               // 3 inches
+clamp_od = center_tube_dia + 12;
+clamp_z = shaft_top - clamp_h - 10;
 
-    // Radial arm — extends from collar to basket position at station 0
-    translate([head_collar_od/2 - 2, 0, head_collar_h/2])
-        rotate([0, 90, 0])
-        cylinder(d=head_arm_dia, h=head_arm_length);
+head_z = clamp_z + clamp_h;
 
-    // Basket (wire mesh cylinder at station 0 position)
-    translate([jar_center_r, 0, -20]) {
-        color("DimGray")
-        difference() {
-            cylinder(d=basket_dia, h=basket_h);
-            translate([0, 0, basket_wall])
-                cylinder(d=basket_dia - basket_wall*2, h=basket_h);
+// Smooth ABS plastic agitator mount — sleeve + arm + rounded plate, one piece
+plate_r = 4;  // Edge rounding radius for plate
+color([0.25, 0.25, 0.27])  // Dark ABS plastic
+rotate([0, 0, station_angles[0]])
+difference() {
+    // Use minkowski for overall rounding on the plate area
+    union() {
+        // --- Sleeve collar (slides on shaft) ---
+        rotate([0, 0, -station_angles[0]])
+        translate([0, 0, clamp_z])
+            cylinder(d=clamp_od, h=clamp_h);
+
+        // --- Smooth flowing arm: multiple hull stages ---
+        // Stage 1: collar top widens into arm root
+        hull() {
+            translate([0, 0, head_z - 10])
+                scale([1.2, 0.8, 1])
+                cylinder(d=clamp_od, h=10);
+            translate([jar_center_r * 0.3, 0, head_z - 8])
+                scale([1, 0.6, 1])
+                cylinder(d=clamp_od + 5, h=8);
         }
-        // Basket bottom (mesh plate)
-        color("DimGray")
-        cylinder(d=basket_dia, h=basket_wall);
+        // Stage 2: arm root flows outward
+        hull() {
+            translate([jar_center_r * 0.3, 0, head_z - 8])
+                scale([1, 0.6, 1])
+                cylinder(d=clamp_od + 5, h=8);
+            translate([jar_center_r * 0.65, 0, head_z - 5])
+                scale([1, 0.7, 1])
+                cylinder(d=45, h=5);
+        }
+        // Stage 3: arm merges into plate underside
+        hull() {
+            translate([jar_center_r * 0.65, 0, head_z - 5])
+                scale([1, 0.7, 1])
+                cylinder(d=45, h=5);
+            translate([jar_center_r, 0, head_z - 3])
+                cylinder(d=head_plate_dia - 5, h=3);
+        }
+
+        // --- Rounded motor plate ---
+        // Main plate body with rounded edge (rotate_extrude torus + cylinder)
+        translate([jar_center_r, 0, head_z]) {
+            // Flat center disc
+            cylinder(d=head_plate_dia - plate_r*2, h=head_plate_h);
+            // Rounded outer edge ring (torus)
+            translate([0, 0, plate_r])
+                rotate_extrude()
+                translate([head_plate_dia/2 - plate_r, 0, 0])
+                    circle(r=plate_r);
+            // Fill between torus and center
+            translate([0, 0, plate_r])
+                cylinder(d=head_plate_dia - plate_r*2, h=head_plate_h - plate_r);
+            // Top rounded edge
+            translate([0, 0, head_plate_h - plate_r])
+                rotate_extrude()
+                translate([head_plate_dia/2 - plate_r, 0, 0])
+                    circle(r=plate_r);
+            // Fill top
+            cylinder(d=head_plate_dia, h=head_plate_h - plate_r);
+        }
+
+        // --- Lower support sweep (underside curve) ---
+        hull() {
+            translate([0, 0, clamp_z + clamp_h * 0.35])
+                scale([1, 0.7, 1])
+                cylinder(d=clamp_od + 2, h=5);
+            translate([jar_center_r * 0.35, 0, head_z - 15])
+                scale([1, 0.5, 1])
+                cylinder(d=clamp_od - 5, h=5);
+        }
+        hull() {
+            translate([jar_center_r * 0.35, 0, head_z - 15])
+                scale([1, 0.5, 1])
+                cylinder(d=clamp_od - 5, h=5);
+            translate([jar_center_r * 0.7, 0, head_z - 8])
+                scale([1, 0.6, 1])
+                cylinder(d=30, h=4);
+        }
     }
+
+    // --- Bore out sleeve center ---
+    rotate([0, 0, -station_angles[0]])
+    translate([0, 0, clamp_z - 0.1])
+        cylinder(d=center_tube_dia + 0.5, h=clamp_h + 15);
+
+    // --- Plate center bore (agitation shaft) ---
+    translate([jar_center_r, 0, head_z - 0.1])
+        cylinder(d=10, h=head_plate_h + 0.2);
 }
 
 // ==========================================
@@ -923,4 +987,90 @@ hull() {
         sphere(d=1.5);
     translate([0, cable_guide_y, head_z + head_collar_h/2])
         sphere(d=1.5);
+}
+
+// ==========================================
+// AGITATOR ASSEMBLY (NEMA23 + RATTMMOTOR bracket)
+// ==========================================
+// Centered on agitator mount plate, over station 0 jar
+
+// --- RATTMMOTOR NEMA23 Mount Bracket ---
+// From detailed engineering drawing (all dims in mm)
+n23_flange_sq = 54.7;        // Top flange square (motor mounts here)
+n23_flange_h = 5;            // Flange thickness
+n23_body_sq = 47;            // Body square (matches bolt pattern)
+n23_body_h = 31.77;          // Body height below flange
+n23_bolt_spacing = 47;       // Bolt pattern center-to-center
+n23_bolt_d = 5.5;            // Bolt hole diameter
+n23_pilot_d = 42;            // Top face motor pilot recess
+n23_bore_d = 29;             // Vertical through bore
+n23_bottom_cbore_d = 33;     // Bottom counterbore diameter
+n23_bottom_cbore_h = 5;      // Bottom counterbore depth
+n23_front_bore_d = 29;       // Front face horizontal bore
+n23_total_h = n23_body_h + n23_flange_h;  // 36.77mm
+
+// Position: on top of agitator mount plate, centered on bore hole
+rotate([0, 0, station_angles[0]])
+translate([jar_center_r, 0, head_z + head_plate_h]) {
+    // Bracket
+    color([0.75, 0.75, 0.78])
+    difference() {
+        union() {
+            // Top flange plate (wider, motor bolts here)
+            translate([-n23_flange_sq/2, -n23_flange_sq/2, n23_body_h])
+                cube([n23_flange_sq, n23_flange_sq, n23_flange_h]);
+            // Main body block (47x47mm, below flange)
+            translate([-n23_body_sq/2, -n23_body_sq/2, 0])
+                cube([n23_body_sq, n23_body_sq, n23_body_h]);
+        }
+        // Vertical through bore (Φ29, full height)
+        cylinder(d=n23_bore_d, h=n23_total_h);
+        // Top face pilot recess (Φ42, into flange only)
+        translate([0, 0, n23_body_h])
+            cylinder(d=n23_pilot_d, h=n23_flange_h);
+        // Bottom counterbore (Φ33, 5mm deep into body base)
+        translate([0, 0, -0.1])
+            cylinder(d=n23_bottom_cbore_d, h=n23_bottom_cbore_h + 0.1);
+        // Front face horizontal bore (Φ29, centered on body height)
+        translate([0, -n23_body_sq/2 - 0.1, n23_body_h/2])
+            rotate([-90, 0, 0])
+            cylinder(d=n23_front_bore_d, h=n23_body_sq + 0.2);
+        // 4 corner bolt holes through flange (for motor mounting)
+        for (x = [-1, 1]) for (y = [-1, 1])
+            translate([x * n23_bolt_spacing/2, y * n23_bolt_spacing/2, n23_body_h])
+                cylinder(d=n23_bolt_d, h=n23_flange_h + 0.1);
+        // 4 corner bolt holes through body (for base mounting)
+        for (x = [-1, 1]) for (y = [-1, 1])
+            translate([x * n23_bolt_spacing/2, y * n23_bolt_spacing/2, -0.1])
+                cylinder(d=n23_bolt_d, h=n23_body_h + 0.2);
+    }
+
+    // --- NEMA23 Motor on top ---
+    // From YEJMKJ spec drawing
+    nema23_face = 56.3;          // Faceplate square dimension
+    nema23_body_len = 40.4;      // Body length
+    nema23_bolt_sp = 47.14;      // Bolt pattern square
+    nema23_bolt_d = 5.0;         // M5 mounting holes
+    nema23_mpilot_d = 38.1;      // Pilot/register diameter
+    nema23_mpilot_h = 1.6;       // Pilot protrusion
+    nema23_shaft_d = 8.0;        // Shaft diameter
+    nema23_shaft_len = 21;       // Shaft protrusion
+    nema23_connector_len = 18;   // Rear connector housing
+
+    color([0.15, 0.15, 0.15])
+    translate([0, 0, n23_total_h]) {
+        // Pilot ring
+        cylinder(d=nema23_mpilot_d, h=nema23_mpilot_h);
+        // Motor body (square with rounded corners)
+        translate([-nema23_face/2, -nema23_face/2, nema23_mpilot_h])
+            cube([nema23_face, nema23_face, nema23_body_len]);
+        // Rear connector housing
+        translate([0, 0, nema23_mpilot_h + nema23_body_len])
+            cylinder(d=nema23_face - 8, h=nema23_connector_len);
+    }
+
+    // Motor shaft (extends down through bracket)
+    color("Silver")
+    translate([0, 0, n23_total_h - nema23_shaft_len])
+        cylinder(d=nema23_shaft_d, h=nema23_shaft_len);
 }
