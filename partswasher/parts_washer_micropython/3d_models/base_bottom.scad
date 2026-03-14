@@ -38,7 +38,7 @@ base_z = foot_height;       // bottom of barrel/base plate
 
 // === Center shaft ===
 center_hole_dia = 25;       // agitation shaft bore
-center_tube_dia = 32;       // center tube OD
+center_tube_dia = 31.51;    // center tube OD (measured)
 center_tube_height = 89;    // full height of tube
 
 // === Station layout (4 stations, 90 deg apart) ===
@@ -347,7 +347,7 @@ module glass_jars() {
 
 module center_shaft() {
     // Center tube extends from base up to agitator shaft top
-    // Matches assembly_view.scad: tube_od=31.51 (~center_tube_dia=32), tube_id=25
+    // Matches assembly_view.scad: tube_od=31.51, tube_id=25
     color("Silver")
     translate([0, 0, base_z])
     difference() {
